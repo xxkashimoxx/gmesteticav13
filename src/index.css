@@ -8,31 +8,31 @@ All colors MUST be HSL.
 
 @layer base {
 :root {
-    /* Medical Professional Color Palette */
-    --background: 220 15% 97%;
-    --foreground: 215 25% 27%;
+    /* Magenta & Nude Aesthetic Palette */
+    --background: 30 20% 95%;
+    --foreground: 340 15% 25%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 27%;
+    --card: 25 30% 98%;
+    --card-foreground: 340 15% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover: 25 30% 98%;
+    --popover-foreground: 340 15% 25%;
 
-    /* Medical Blue Primary */
-    --primary: 210 100% 44%;
+    /* Magenta Primary */
+    --primary: 320 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 210 100% 65%;
+    --primary-glow: 320 70% 70%;
 
-    /* Clean Secondary */
-    --secondary: 215 16% 94%;
-    --secondary-foreground: 215 25% 27%;
+    /* Nude Secondary */
+    --secondary: 25 25% 88%;
+    --secondary-foreground: 340 15% 25%;
 
-    --muted: 215 16% 94%;
-    --muted-foreground: 215 13% 54%;
+    --muted: 25 25% 88%;
+    --muted-foreground: 30 15% 50%;
 
-    /* Gold Accent for Premium Feel */
-    --accent: 43 96% 56%;
-    --accent-foreground: 215 25% 27%;
+    /* Rose Gold Accent */
+    --accent: 15 65% 70%;
+    --accent-foreground: 340 15% 25%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -45,18 +45,18 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 215 14% 89%;
-    --input: 215 14% 89%;
-    --ring: 210 100% 44%;
+    --border: 25 20% 85%;
+    --input: 25 20% 85%;
+    --ring: 320 85% 55%;
 
-    /* Medical Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(210 100% 44%), hsl(210 100% 65%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(215 16% 97%));
-    --gradient-accent: linear-gradient(135deg, hsl(43 96% 56%), hsl(43 96% 70%));
+    /* Magenta & Nude Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(320 85% 55%), hsl(320 70% 70%));
+    --gradient-card: linear-gradient(145deg, hsl(25 30% 98%), hsl(30 20% 95%));
+    --gradient-accent: linear-gradient(135deg, hsl(15 65% 70%), hsl(15 65% 80%));
 
-    /* Professional Shadows */
-    --shadow-card: 0 4px 6px -1px hsl(215 25% 27% / 0.1), 0 2px 4px -1px hsl(215 25% 27% / 0.06);
-    --shadow-elevated: 0 10px 15px -3px hsl(215 25% 27% / 0.1), 0 4px 6px -2px hsl(215 25% 27% / 0.05);
+    /* Elegant Shadows */
+    --shadow-card: 0 4px 6px -1px hsl(340 15% 25% / 0.1), 0 2px 4px -1px hsl(340 15% 25% / 0.06);
+    --shadow-elevated: 0 10px 15px -3px hsl(340 15% 25% / 0.1), 0 4px 6px -2px hsl(340 15% 25% / 0.05);
 
     /* Smooth Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

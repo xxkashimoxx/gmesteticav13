@@ -17,7 +17,7 @@ export function Sidebar() {
     <div className="flex flex-col w-64 bg-card border-r border-border shadow-card">
       <div className="flex items-center justify-center h-16 px-4 border-b border-border bg-gradient-primary">
         <h1 className="text-lg font-bold text-primary-foreground">
-          Clínica Estética
+          Glow Clinic
         </h1>
       </div>
       
