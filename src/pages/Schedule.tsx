@@ -50,10 +50,10 @@ export default function Schedule() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Agenda</h1>
+        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Novo Agendamento
         </Button>
@@ -62,28 +62,28 @@ export default function Schedule() {
       {/* Week Navigation */}
       <Card className="shadow-card border-0 bg-gradient-card">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2 text-base md:text-lg">
               <CalendarIcon className="w-5 h-5 text-primary" />
-              Semana de {format(weekStart, "dd 'de' MMMM", { locale: ptBR })}
+              <span className="truncate">Semana de {format(weekStart, "dd 'de' MMMM", { locale: ptBR })}</span>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedDate(addDays(selectedDate, -7))}
               >
                 Anterior
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedDate(new Date())}
               >
                 Hoje
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedDate(addDays(selectedDate, 7))}
               >
@@ -95,7 +95,8 @@ export default function Schedule() {
       </Card>
 
       {/* Weekly Schedule */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 md:gap-4">
+
         {weekDays.map((day, index) => {
           const dayAppointments = getAppointmentsForDate(day);
           const isToday = day.toDateString() === new Date().toDateString();
