@@ -40,10 +40,10 @@ export default function Patients() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Pacientes</h1>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Pacientes</h1>
+        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Novo Paciente
         </Button>
@@ -51,7 +51,7 @@ export default function Patients() {
 
       {/* Search and Filter Bar */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar pacientes..."
@@ -63,7 +63,8 @@ export default function Patients() {
       </div>
 
       {/* Patients Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+
         {filteredPatients.map((patient) => (
           <Card key={patient.id} className="shadow-card border-0 bg-gradient-card hover:shadow-elevated transition-smooth">
             <CardHeader className="pb-3">
