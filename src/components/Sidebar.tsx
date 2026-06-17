@@ -69,15 +69,16 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gradient-accent rounded-full flex items-center justify-center shadow-card">
-            <span className="text-sm font-semibold text-accent-foreground">DR</span>
+          <div className="w-9 h-9 bg-gradient-primary rounded-full flex items-center justify-center shadow-card ring-2 ring-secondary">
+            <span className="text-sm font-bold text-primary-foreground tracking-wide">GM</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">Dr. Admin</p>
-            <p className="text-xs text-muted-foreground truncate">Estética Avançada</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">GM Estética</p>
+            <p className="text-xs text-muted-foreground truncate">Avançada</p>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
