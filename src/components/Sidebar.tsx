@@ -124,7 +124,8 @@ export function MobileBottomNav() {
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur border-t border-border shadow-elevated">
       <ul className="flex items-stretch justify-around">
-        {navigation.map((item) => {
+        {mobileBottomNav.map((item) => {
+
           const isActive = location.pathname === item.href;
           return (
             <li key={item.name} className="flex-1">
