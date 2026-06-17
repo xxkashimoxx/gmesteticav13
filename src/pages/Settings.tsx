@@ -15,16 +15,17 @@ import {
 
 export default function Settings() {
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Configurações</h1>
+        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
           <Save className="w-4 h-4 mr-2" />
           Salvar Alterações
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
+
         {/* Profile Settings */}
         <Card className="shadow-card border-0 bg-gradient-card">
           <CardHeader>
