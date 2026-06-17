@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Calendar, Users, CreditCard, BarChart3, Settings, Menu, Sparkles } from 'lucide-react';
+import {
+  Calendar,
+  Users,
+  CreditCard,
+  BarChart3,
+  Settings,
+  Menu,
+  Sparkles,
+  Flame,
+  Plug,
+} from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -7,11 +17,22 @@ import { Button } from '@/components/ui/button';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
+  { name: 'Leads', href: '/leads', icon: Flame },
   { name: 'Pacientes', href: '/patients', icon: Users },
   { name: 'Agenda', href: '/schedule', icon: Calendar },
   { name: 'Financeiro', href: '/finance', icon: CreditCard },
+  { name: 'Integrações', href: '/integrations', icon: Plug },
   { name: 'Configurações', href: '/settings', icon: Settings },
 ];
+
+const mobileBottomNav = [
+  { name: 'Início', href: '/', icon: BarChart3 },
+  { name: 'Leads', href: '/leads', icon: Flame },
+  { name: 'Agenda', href: '/schedule', icon: Calendar },
+  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Integrar', href: '/integrations', icon: Plug },
+];
+
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
