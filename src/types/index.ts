@@ -30,3 +30,41 @@ export interface Appointment {
   status: 'scheduled' | 'completed' | 'cancelled';
   value: number;
 }
+
+export type LeadTemperature = 'hot' | 'warm' | 'cold';
+export type LeadStage =
+  | 'novo'
+  | 'contato'
+  | 'qualificado'
+  | 'agendamento'
+  | 'convertido'
+  | 'perdido';
+
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  source: string;
+  campaign?: string;
+  procedureInterest: string;
+  temperature: LeadTemperature;
+  stage: LeadStage;
+  score: number;
+  estimatedValue: number;
+  createdAt: string;
+  lastInteraction: string;
+  scheduledDate?: string;
+  notes?: string;
+}
+
+export type IntegrationStatus = 'connected' | 'disconnected' | 'pending';
+
+export interface Integration {
+  id: string;
+  name: string;
+  category: 'ads' | 'analytics' | 'messaging' | 'crm' | 'automation';
+  description: string;
+  status: IntegrationStatus;
+  metric?: { label: string; value: string };
+}
