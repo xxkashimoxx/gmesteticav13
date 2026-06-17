@@ -207,7 +207,7 @@ export default function Settings() {
         </Card>
 
         {/* Appearance */}
-        <Card className="shadow-card border-0 bg-gradient-card lg:col-span-2">
+        <Card className="shadow-card border-0 bg-gradient-card xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="w-5 h-5 text-primary" />
