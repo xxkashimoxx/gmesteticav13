@@ -73,8 +73,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <span className="text-sm font-bold text-primary-foreground tracking-wide">GM</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">GM Estética</p>
-            <p className="text-xs text-muted-foreground truncate">Avançada</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">GM · GM Estética Avançada</p>
+            <p className="text-xs text-muted-foreground truncate">Painel administrativo</p>
           </div>
         </div>
       </div>
