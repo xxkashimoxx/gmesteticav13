@@ -100,7 +100,7 @@ export function MobileHeader() {
           <span className="text-xs font-bold text-primary-foreground tracking-wide">GM</span>
         </div>
         <h1 className="text-sm font-bold text-primary-foreground tracking-tight truncate">
-          GM Estética Avançada
+          GM - GESTAÇÃO GERAL
         </h1>
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
