@@ -95,10 +95,12 @@ export function MobileHeader() {
   const [open, setOpen] = useState(false);
   return (
     <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-14 px-4 bg-gradient-primary border-b border-sidebar-border shadow-card">
-      <div className="flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-primary-foreground" />
-        <h1 className="text-base font-bold text-primary-foreground tracking-tight">
-          Glow Clinic
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="w-8 h-8 rounded-full bg-primary-foreground/15 ring-2 ring-secondary/60 flex items-center justify-center shrink-0">
+          <span className="text-xs font-bold text-primary-foreground tracking-wide">GM</span>
+        </div>
+        <h1 className="text-sm font-bold text-primary-foreground tracking-tight truncate">
+          GM Estética Avançada
         </h1>
       </div>
       <Sheet open={open} onOpenChange={setOpen}>
