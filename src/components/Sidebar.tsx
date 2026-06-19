@@ -9,11 +9,44 @@ import {
   Sparkles,
   Flame,
   Plug,
+  MessageCircle,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+
+// Substitua pelo link real do grupo de WhatsApp (ex.: https://chat.whatsapp.com/XXXXXXXXXXXX)
+const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/your-invite-code';
+
+function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'header' }) {
+  if (variant === 'header') {
+    return (
+      <Button
+        asChild
+        variant="ghost"
+        size="icon"
+        className="text-primary-foreground hover:bg-primary-foreground/10"
+        aria-label="Grupo WhatsApp - Marketing"
+      >
+        <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer">
+          <MessageCircle className="w-5 h-5" />
+        </a>
+      </Button>
+    );
+  }
+  return (
+    <Button
+      asChild
+      className="w-full justify-start gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white shadow-card"
+    >
+      <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer">
+        <MessageCircle className="w-4 h-4" />
+        Grupo Marketing
+      </a>
+    </Button>
+  );
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
@@ -41,7 +74,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="flex items-center gap-2 h-16 px-5 border-b border-sidebar-border bg-gradient-primary">
         <Sparkles className="w-5 h-5 text-primary-foreground shrink-0" />
         <h1 className="text-base font-bold text-primary-foreground tracking-tight truncate">
-          GM - GESTAÇÃO GERAL
+          GM - GESTÃO GERAL
         </h1>
       </div>
 
@@ -67,13 +100,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        <WhatsAppGroupButton />
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 bg-gradient-primary rounded-full flex items-center justify-center shadow-card ring-2 ring-secondary">
             <span className="text-sm font-bold text-primary-foreground tracking-wide">GM</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">GM - GESTAÇÃO GERAL</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">GM - GESTÃO GERAL</p>
             <p className="text-xs text-muted-foreground truncate">Painel administrativo</p>
           </div>
         </div>
@@ -100,24 +134,27 @@ export function MobileHeader() {
           <span className="text-xs font-bold text-primary-foreground tracking-wide">GM</span>
         </div>
         <h1 className="text-sm font-bold text-primary-foreground tracking-tight truncate">
-          GM - GESTAÇÃO GERAL
+          GM - GESTÃO GERAL
         </h1>
       </div>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-            aria-label="Abrir menu"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="p-0 w-72 bg-sidebar">
-          <SidebarContent onNavigate={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <div className="flex items-center gap-1">
+        <WhatsAppGroupButton variant="header" />
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+              aria-label="Abrir menu"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72 bg-sidebar">
+            <SidebarContent onNavigate={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
     </header>
   );
 }
