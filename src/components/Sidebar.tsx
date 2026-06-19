@@ -9,11 +9,44 @@ import {
   Sparkles,
   Flame,
   Plug,
+  MessageCircle,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+
+// Substitua pelo link real do grupo de WhatsApp (ex.: https://chat.whatsapp.com/XXXXXXXXXXXX)
+const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/your-invite-code';
+
+function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'header' }) {
+  if (variant === 'header') {
+    return (
+      <Button
+        asChild
+        variant="ghost"
+        size="icon"
+        className="text-primary-foreground hover:bg-primary-foreground/10"
+        aria-label="Grupo WhatsApp - Marketing"
+      >
+        <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer">
+          <MessageCircle className="w-5 h-5" />
+        </a>
+      </Button>
+    );
+  }
+  return (
+    <Button
+      asChild
+      className="w-full justify-start gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white shadow-card"
+    >
+      <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer">
+        <MessageCircle className="w-4 h-4" />
+        Grupo Marketing
+      </a>
+    </Button>
+  );
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
