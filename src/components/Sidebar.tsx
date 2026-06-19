@@ -100,7 +100,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        <WhatsAppGroupButton />
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 bg-gradient-primary rounded-full flex items-center justify-center shadow-card ring-2 ring-secondary">
             <span className="text-sm font-bold text-primary-foreground tracking-wide">GM</span>
