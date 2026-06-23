@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      procedures: {
+        Row: {
+          archived: boolean
+          category: string
+          created_at: string
+          default_price: number
+          description: string | null
+          duration: string | null
+          highlight: string | null
+          id: string
+          name: string
+          sessions_recommended: number
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          category: string
+          created_at?: string
+          default_price?: number
+          description?: string | null
+          duration?: string | null
+          highlight?: string | null
+          id?: string
+          name: string
+          sessions_recommended?: number
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          category?: string
+          created_at?: string
+          default_price?: number
+          description?: string | null
+          duration?: string | null
+          highlight?: string | null
+          id?: string
+          name?: string
+          sessions_recommended?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
