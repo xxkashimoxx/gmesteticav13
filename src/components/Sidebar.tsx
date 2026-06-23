@@ -10,13 +10,15 @@ import {
   Flame,
   Plug,
   MessageCircle,
+  Syringe,
+  LogOut,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { useAuth, type AppRole } from '@/hooks/useAuth';
 
-// Substitua pelo link real do grupo de WhatsApp (ex.: https://chat.whatsapp.com/XXXXXXXXXXXX)
 const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/your-invite-code';
 
 function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'header' }) {
@@ -48,27 +50,37 @@ function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'h
   );
 }
 
-const navigation = [
+type NavItem = { name: string; href: string; icon: typeof BarChart3; roles?: AppRole[] };
+
+const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'Leads', href: '/leads', icon: Flame },
-  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Procedimentos', href: '/procedures', icon: Syringe },
+  { name: 'Pacientes', href: '/patients', icon: Users, roles: ['admin'] },
   { name: 'Agenda', href: '/schedule', icon: Calendar },
-  { name: 'Financeiro', href: '/finance', icon: CreditCard },
+  { name: 'Financeiro', href: '/finance', icon: CreditCard, roles: ['admin'] },
   { name: 'Integrações', href: '/integrations', icon: Plug },
-  { name: 'Configurações', href: '/settings', icon: Settings },
+  { name: 'Configurações', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
-const mobileBottomNav = [
+const mobileBottomNavBase: NavItem[] = [
   { name: 'Início', href: '/', icon: BarChart3 },
   { name: 'Leads', href: '/leads', icon: Flame },
   { name: 'Agenda', href: '/schedule', icon: Calendar },
-  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Proced.', href: '/procedures', icon: Syringe },
   { name: 'Integrar', href: '/integrations', icon: Plug },
 ];
 
+function visibleNav(role: AppRole | null) {
+  return navigation.filter((i) => !i.roles || (role && i.roles.includes(role)));
+}
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
+  const { role, user, signOut } = useAuth();
+  const items = visibleNav(role);
+  const roleLabel = role === 'admin' ? 'Administradora' : role === 'traffic_manager' ? 'Gestor de tráfego' : '—';
+
   return (
     <div className="flex flex-col h-full bg-sidebar">
       <div className="flex items-center gap-2 h-16 px-5 border-b border-sidebar-border bg-gradient-primary">
@@ -78,8 +90,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </h1>
       </div>
 
-      <nav className="flex-1 px-3 py-5 space-y-1">
-        {navigation.map((item) => {
+      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        {items.map((item) => {
           const isActive = location.pathname === item.href;
           return (
             <NavLink
@@ -107,12 +119,22 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <span className="text-sm font-bold text-primary-foreground tracking-wide">GM</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">GM - GESTÃO GERAL</p>
-            <p className="text-xs text-muted-foreground truncate">Painel administrativo</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">
+              {user?.email ?? 'GM - GESTÃO GERAL'}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">{roleLabel}</p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            aria-label="Sair"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </div>
-
     </div>
   );
 }
@@ -161,11 +183,13 @@ export function MobileHeader() {
 
 export function MobileBottomNav() {
   const location = useLocation();
+  const { role } = useAuth();
+  const items = mobileBottomNavBase; // mobile bottom is shared for both roles
+  void role;
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur border-t border-border shadow-elevated">
       <ul className="flex items-stretch justify-around">
-        {mobileBottomNav.map((item) => {
-
+        {items.map((item) => {
           const isActive = location.pathname === item.href;
           return (
             <li key={item.name} className="flex-1">
