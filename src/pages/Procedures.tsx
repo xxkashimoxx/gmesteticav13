@@ -115,6 +115,7 @@ export default function Procedures() {
     } else {
       setItems((data ?? []) as Procedure[]);
     }
+    setSales((sdata ?? []) as Sale[]);
     setLoading(false);
   }
 
@@ -142,6 +143,39 @@ export default function Procedures() {
       avg,
     };
   }, [items]);
+
+  // Ranking de mais vendidos
+  const ranking = useMemo(() => {
+    const m = new Map<string, { name: string; count: number; revenue: number }>();
+    for (const s of sales) {
+      const key = s.procedure_id ?? s.procedure_name;
+      const cur = m.get(key) ?? { name: s.procedure_name, count: 0, revenue: 0 };
+      cur.count++;
+      cur.revenue += Number(s.value);
+      m.set(key, cur);
+    }
+    return Array.from(m.values()).sort((a, b) => b.count - a.count).slice(0, 6);
+  }, [sales]);
+
+  // Receita prevista por mês (próximos 6 meses, baseado em média dos últimos 90 dias)
+  const monthlyForecast = useMemo(() => {
+    const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const recent = sales.filter((s) => new Date(s.sold_at).getTime() >= cutoff);
+    const monthlyAvg = recent.reduce((s, x) => s + Number(x.value), 0) / 3;
+    const months: { label: string; value: number }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      months.push({
+        label: d.toLocaleDateString('pt-BR', { month: 'short' }),
+        value: monthlyAvg,
+      });
+    }
+    return { months, monthlyAvg };
+  }, [sales]);
+
+  const maxForecast = Math.max(1, ...monthlyForecast.months.map((m) => m.value));
+
 
   function openCreate() {
     setEditing(null);
