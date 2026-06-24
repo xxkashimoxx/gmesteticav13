@@ -14,6 +14,220 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          notes: string | null
+          patient_name: string
+          patient_phone: string | null
+          procedure_id: string | null
+          procedure_name: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          procedure_id?: string | null
+          procedure_name?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          procedure_id?: string | null
+          procedure_name?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_interactions: {
+        Row: {
+          channel: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          lead_id: string
+          message: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          lead_id: string
+          message: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          lead_id?: string
+          message?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          campaign: string | null
+          created_at: string
+          email: string | null
+          estimated_value: number
+          id: string
+          last_contact_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          procedure_id: string | null
+          procedure_interest: string | null
+          score: number
+          source: string
+          stage: string
+          temperature: string
+          updated_at: string
+        }
+        Insert: {
+          campaign?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_value?: number
+          id?: string
+          last_contact_at?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          procedure_id?: string | null
+          procedure_interest?: string | null
+          score?: number
+          source?: string
+          stage?: string
+          temperature?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign?: string | null
+          created_at?: string
+          email?: string | null
+          estimated_value?: number
+          id?: string
+          last_contact_at?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          procedure_id?: string | null
+          procedure_interest?: string | null
+          score?: number
+          source?: string
+          stage?: string
+          temperature?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procedure_sales: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          patient_name: string
+          procedure_id: string | null
+          procedure_name: string
+          sold_at: string
+          source: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          patient_name: string
+          procedure_id?: string | null
+          procedure_name: string
+          sold_at?: string
+          source?: string | null
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          patient_name?: string
+          procedure_id?: string | null
+          procedure_name?: string
+          sold_at?: string
+          source?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedure_sales_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procedure_sales_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       procedures: {
         Row: {
           archived: boolean
