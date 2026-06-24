@@ -90,6 +90,7 @@ export default function Procedures() {
   const isAdmin = role === 'admin';
 
   const [items, setItems] = useState<Procedure[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('Todos');
@@ -105,10 +106,10 @@ export default function Procedures() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('procedures')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [{ data, error }, { data: sdata }] = await Promise.all([
+      supabase.from('procedures').select('*').order('created_at', { ascending: false }),
+      supabase.from('procedure_sales').select('id,procedure_id,procedure_name,value,sold_at'),
+    ]);
     if (error) {
       toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
     } else {
