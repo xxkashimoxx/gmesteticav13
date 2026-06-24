@@ -266,6 +266,72 @@ export default function Procedures() {
         <StatCard title="Arquivados" value={totals.archived.toString()} icon={Archive} className="border-l-4 border-l-warning" />
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <Card className="shadow-card border-0 bg-gradient-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" /> Mais vendidos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {ranking.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma venda registrada ainda.
+              </p>
+            ) : (
+              ranking.map((r, i) => {
+                const max = ranking[0].count;
+                return (
+                  <div key={r.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium truncate">
+                        #{i + 1} {r.name}
+                      </span>
+                      <span className="text-muted-foreground shrink-0">
+                        {r.count}× · <span className="font-semibold text-foreground">{brlFmt(r.revenue)}</span>
+                      </span>
+                    </div>
+                    <Progress value={(r.count / max) * 100} className="h-2" />
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card border-0 bg-gradient-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" /> Receita prevista por mês
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Projeção baseada na média dos últimos 90 dias: {brlFmt(monthlyForecast.monthlyAvg)}/mês
+            </p>
+          </CardHeader>
+          <CardContent>
+            {monthlyForecast.monthlyAvg === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Registre vendas para gerar a projeção.
+              </p>
+            ) : (
+              <div className="flex items-end justify-between gap-2 h-40">
+                {monthlyForecast.months.map((m) => (
+                  <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-semibold">{brlFmt(m.value)}</span>
+                    <div
+                      className="w-full bg-gradient-primary rounded-t-md transition-all"
+                      style={{ height: `${(m.value / maxForecast) * 100}%`, minHeight: '4px' }}
+                    />
+                    <span className="text-xs text-muted-foreground capitalize">{m.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
