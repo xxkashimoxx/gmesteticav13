@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -41,8 +42,19 @@ import {
   Archive,
   ArchiveRestore,
   Tag,
+  Trophy,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { brl as brlFmt } from '@/lib/format';
+
+interface Sale {
+  id: string;
+  procedure_id: string | null;
+  procedure_name: string;
+  value: number;
+  sold_at: string;
+}
 
 interface Procedure {
   id: string;
