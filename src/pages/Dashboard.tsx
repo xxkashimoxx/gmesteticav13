@@ -1,24 +1,72 @@
+import { useEffect, useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Users, DollarSign, TrendingUp, Clock } from 'lucide-react';
-import { mockPatients, mockAppointments } from '@/data/mockData';
+import { CalendarDays, Users, DollarSign, TrendingUp, Clock, Target, Flame } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { brl, startOfWeek } from '@/lib/format';
+
+interface Lead {
+  id: string;
+  name: string;
+  stage: string;
+  temperature: string;
+  estimated_value: number;
+  source: string;
+  created_at: string;
+}
+interface Appointment {
+  id: string;
+  patient_name: string;
+  procedure_name: string | null;
+  scheduled_at: string;
+  status: string;
+  value: number;
+}
 
 export default function Dashboard() {
-  const totalPatients = mockPatients.length;
-  const totalRevenue = mockPatients.reduce((sum, patient) => sum + patient.paidValue, 0);
-  const pendingRevenue = mockPatients.reduce((sum, patient) => sum + patient.pendingValue, 0);
-  const todayAppointments = mockAppointments.filter(
-    apt => apt.date === new Date().toISOString().split('T')[0]
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: l }, { data: a }] = await Promise.all([
+        supabase.from('leads').select('id,name,stage,temperature,estimated_value,source,created_at'),
+        supabase.from('appointments').select('*').order('scheduled_at', { ascending: true }),
+      ]);
+      setLeads((l ?? []) as Lead[]);
+      setAppointments((a ?? []) as Appointment[]);
+    })();
+  }, []);
+
+  const today = new Date().toISOString().split('T')[0];
+  const weekStart = startOfWeek();
+
+  const todayAppointments = appointments.filter(
+    (a) => a.scheduled_at.split('T')[0] === today,
   ).length;
 
-  const upcomingAppointments = mockAppointments
-    .filter(apt => apt.status === 'scheduled')
-    .slice(0, 5);
+  const weekConversions = leads.filter(
+    (l) => l.stage === 'convertido' && new Date(l.created_at) >= weekStart,
+  ).length;
 
-  const recentPatients = mockPatients
-    .filter(patient => patient.procedures.length > 0)
-    .slice(0, 4);
+  const agendados = leads.filter((l) => l.stage === 'agendamento' || l.stage === 'convertido').length;
+  const taxaAgendamento = leads.length ? Math.round((agendados / leads.length) * 100) : 0;
+
+  // Receita prevista: hot+warm leads pipeline + agendamentos futuros não cancelados
+  const futureRevenue = appointments
+    .filter((a) => new Date(a.scheduled_at) >= new Date() && a.status !== 'cancelled')
+    .reduce((s, a) => s + Number(a.value), 0);
+  const leadPipeline = leads
+    .filter((l) => l.temperature !== 'cold' && l.stage !== 'perdido' && l.stage !== 'convertido')
+    .reduce((s, l) => s + Number(l.estimated_value), 0);
+  const receitaPrevista = futureRevenue + leadPipeline;
+
+  const hotLeads = leads.filter((l) => l.temperature === 'hot').length;
+
+  const upcoming = appointments
+    .filter((a) => new Date(a.scheduled_at) >= new Date() && a.status === 'scheduled')
+    .slice(0, 5);
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
@@ -29,31 +77,26 @@ export default function Dashboard() {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
           })}
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-
         <StatCard
-          title="Total de Pacientes"
-          value={totalPatients.toString()}
-          icon={Users}
-          trend={{ value: "12%", isPositive: true }}
-        />
-        <StatCard
-          title="Receita Recebida"
-          value={`R$ ${totalRevenue.toLocaleString('pt-BR')}`}
-          icon={DollarSign}
-          trend={{ value: "8%", isPositive: true }}
-        />
-        <StatCard
-          title="Valores Pendentes"
-          value={`R$ ${pendingRevenue.toLocaleString('pt-BR')}`}
+          title="Conversões na semana"
+          value={weekConversions.toString()}
           icon={TrendingUp}
-          trend={{ value: "3%", isPositive: false }}
+        />
+        <StatCard
+          title="Taxa de Agendamento"
+          value={`${taxaAgendamento}%`}
+          icon={Target}
+        />
+        <StatCard
+          title="Receita Prevista"
+          value={brl(receitaPrevista)}
+          icon={DollarSign}
         />
         <StatCard
           title="Agendamentos Hoje"
@@ -62,83 +105,52 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-        {/* Próximos Agendamentos */}
-        <Card className="shadow-card border-0 bg-gradient-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Próximos Agendamentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {upcomingAppointments.map((appointment) => (
-              <div key={appointment.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{appointment.patientName}</p>
-                  <p className="text-sm text-muted-foreground">{appointment.procedure}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(`${appointment.date}T${appointment.time}`).toLocaleDateString('pt-BR')} às {appointment.time}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <Badge variant="secondary" className="mb-1">
-                    {appointment.status === 'scheduled' ? 'Agendado' : appointment.status}
-                  </Badge>
-                  {appointment.value > 0 && (
-                    <p className="text-sm font-medium text-primary">
-                      R$ {appointment.value.toLocaleString('pt-BR')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Pacientes Recentes */}
-        <Card className="shadow-card border-0 bg-gradient-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              Pacientes Recentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentPatients.map((patient) => (
-              <div key={patient.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-primary rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary-foreground">
-                      {patient.name.split(' ').map(n => n[0]).join('')}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">{patient.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {patient.procedures.length} procedimento{patient.procedures.length > 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">
-                    R$ {patient.totalValue.toLocaleString('pt-BR')}
-                  </p>
-                  {patient.pendingValue > 0 ? (
-                    <Badge variant="destructive" className="text-xs">
-                      Pendente: R$ {patient.pendingValue.toLocaleString('pt-BR')}
-                    </Badge>
-                  ) : (
-                    <Badge className="text-xs bg-success text-success-foreground">
-                      Pago
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <StatCard title="Total de Leads" value={leads.length.toString()} icon={Users} />
+        <StatCard title="Leads Quentes" value={hotLeads.toString()} icon={Flame} />
+        <StatCard
+          title="Pipeline de Leads"
+          value={brl(leadPipeline)}
+          icon={TrendingUp}
+        />
+        <StatCard
+          title="Receita Agendada"
+          value={brl(futureRevenue)}
+          icon={DollarSign}
+        />
       </div>
+
+      <Card className="shadow-card border-0 bg-gradient-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Próximos Agendamentos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {upcoming.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhum agendamento futuro.</p>
+          ) : (
+            upcoming.map((a) => (
+              <div key={a.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
+                <div>
+                  <p className="font-medium">{a.patient_name}</p>
+                  <p className="text-sm text-muted-foreground">{a.procedure_name ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(a.scheduled_at).toLocaleString('pt-BR')}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <Badge variant="secondary" className="mb-1">Agendado</Badge>
+                  {Number(a.value) > 0 && (
+                    <p className="text-sm font-medium text-primary">{brl(Number(a.value))}</p>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

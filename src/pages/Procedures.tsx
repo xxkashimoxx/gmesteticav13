@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { StatCard } from '@/components/StatCard';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -41,8 +42,19 @@ import {
   Archive,
   ArchiveRestore,
   Tag,
+  Trophy,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { brl as brlFmt } from '@/lib/format';
+
+interface Sale {
+  id: string;
+  procedure_id: string | null;
+  procedure_name: string;
+  value: number;
+  sold_at: string;
+}
 
 interface Procedure {
   id: string;
@@ -78,6 +90,7 @@ export default function Procedures() {
   const isAdmin = role === 'admin';
 
   const [items, setItems] = useState<Procedure[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('Todos');
@@ -93,15 +106,16 @@ export default function Procedures() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('procedures')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [{ data, error }, { data: sdata }] = await Promise.all([
+      supabase.from('procedures').select('*').order('created_at', { ascending: false }),
+      supabase.from('procedure_sales').select('id,procedure_id,procedure_name,value,sold_at'),
+    ]);
     if (error) {
       toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
     } else {
       setItems((data ?? []) as Procedure[]);
     }
+    setSales((sdata ?? []) as Sale[]);
     setLoading(false);
   }
 
@@ -129,6 +143,39 @@ export default function Procedures() {
       avg,
     };
   }, [items]);
+
+  // Ranking de mais vendidos
+  const ranking = useMemo(() => {
+    const m = new Map<string, { name: string; count: number; revenue: number }>();
+    for (const s of sales) {
+      const key = s.procedure_id ?? s.procedure_name;
+      const cur = m.get(key) ?? { name: s.procedure_name, count: 0, revenue: 0 };
+      cur.count++;
+      cur.revenue += Number(s.value);
+      m.set(key, cur);
+    }
+    return Array.from(m.values()).sort((a, b) => b.count - a.count).slice(0, 6);
+  }, [sales]);
+
+  // Receita prevista por mês (próximos 6 meses, baseado em média dos últimos 90 dias)
+  const monthlyForecast = useMemo(() => {
+    const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+    const recent = sales.filter((s) => new Date(s.sold_at).getTime() >= cutoff);
+    const monthlyAvg = recent.reduce((s, x) => s + Number(x.value), 0) / 3;
+    const months: { label: string; value: number }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      months.push({
+        label: d.toLocaleDateString('pt-BR', { month: 'short' }),
+        value: monthlyAvg,
+      });
+    }
+    return { months, monthlyAvg };
+  }, [sales]);
+
+  const maxForecast = Math.max(1, ...monthlyForecast.months.map((m) => m.value));
+
 
   function openCreate() {
     setEditing(null);
@@ -218,6 +265,72 @@ export default function Procedures() {
         <StatCard title="Ticket médio" value={brl(totals.avg)} icon={DollarSign} className="border-l-4 border-l-success" />
         <StatCard title="Arquivados" value={totals.archived.toString()} icon={Archive} className="border-l-4 border-l-warning" />
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <Card className="shadow-card border-0 bg-gradient-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" /> Mais vendidos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {ranking.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma venda registrada ainda.
+              </p>
+            ) : (
+              ranking.map((r, i) => {
+                const max = ranking[0].count;
+                return (
+                  <div key={r.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium truncate">
+                        #{i + 1} {r.name}
+                      </span>
+                      <span className="text-muted-foreground shrink-0">
+                        {r.count}× · <span className="font-semibold text-foreground">{brlFmt(r.revenue)}</span>
+                      </span>
+                    </div>
+                    <Progress value={(r.count / max) * 100} className="h-2" />
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card border-0 bg-gradient-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" /> Receita prevista por mês
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Projeção baseada na média dos últimos 90 dias: {brlFmt(monthlyForecast.monthlyAvg)}/mês
+            </p>
+          </CardHeader>
+          <CardContent>
+            {monthlyForecast.monthlyAvg === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Registre vendas para gerar a projeção.
+              </p>
+            ) : (
+              <div className="flex items-end justify-between gap-2 h-40">
+                {monthlyForecast.months.map((m) => (
+                  <div key={m.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-semibold">{brlFmt(m.value)}</span>
+                    <div
+                      className="w-full bg-gradient-primary rounded-t-md transition-all"
+                      style={{ height: `${(m.value / maxForecast) * 100}%`, minHeight: '4px' }}
+                    />
+                    <span className="text-xs text-muted-foreground capitalize">{m.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
