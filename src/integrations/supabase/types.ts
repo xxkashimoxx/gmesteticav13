@@ -14,54 +14,8 @@ export type Database = {
   }
   public: {
     Tables: {
-      app_integrations: {
-        Row: {
-          category: string
-          config: Json
-          created_at: string
-          description: string | null
-          enabled: boolean
-          id: string
-          last_error: string | null
-          last_sync_at: string | null
-          name: string
-          provider: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          config?: Json
-          created_at?: string
-          description?: string | null
-          enabled?: boolean
-          id?: string
-          last_error?: string | null
-          last_sync_at?: string | null
-          name: string
-          provider: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          config?: Json
-          created_at?: string
-          description?: string | null
-          enabled?: boolean
-          id?: string
-          last_error?: string | null
-          last_sync_at?: string | null
-          name?: string
-          provider?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       appointments: {
         Row: {
-          confirmation_status: string
           created_at: string
           id: string
           lead_id: string | null
@@ -70,14 +24,12 @@ export type Database = {
           patient_phone: string | null
           procedure_id: string | null
           procedure_name: string | null
-          reminder_sent_at: string | null
           scheduled_at: string
           status: string
           updated_at: string
           value: number
         }
         Insert: {
-          confirmation_status?: string
           created_at?: string
           id?: string
           lead_id?: string | null
@@ -86,14 +38,12 @@ export type Database = {
           patient_phone?: string | null
           procedure_id?: string | null
           procedure_name?: string | null
-          reminder_sent_at?: string | null
           scheduled_at: string
           status?: string
           updated_at?: string
           value?: number
         }
         Update: {
-          confirmation_status?: string
           created_at?: string
           id?: string
           lead_id?: string | null
@@ -102,7 +52,6 @@ export type Database = {
           patient_phone?: string | null
           procedure_id?: string | null
           procedure_name?: string | null
-          reminder_sent_at?: string | null
           scheduled_at?: string
           status?: string
           updated_at?: string
