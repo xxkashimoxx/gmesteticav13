@@ -15,6 +15,7 @@ import Leads from "./pages/Leads";
 import Integrations from "./pages/Integrations";
 import Procedures from "./pages/Procedures";
 import Auth from "./pages/Auth";
+import LeadCapture from "./pages/LeadCapture";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/captacao" element={<LeadCapture />} />
             <Route
               path="/"
               element={
