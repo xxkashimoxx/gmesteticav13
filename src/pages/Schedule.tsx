@@ -61,7 +61,7 @@ type Appointment = {
 type ProcedureOption = {
   id: string;
   name: string;
-  default_value: number | null;
+  default_price: number | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
