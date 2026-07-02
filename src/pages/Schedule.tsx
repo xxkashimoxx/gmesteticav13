@@ -114,7 +114,7 @@ export default function Schedule() {
         .gte('scheduled_at', addDays(rangeStart, -1).toISOString())
         .lte('scheduled_at', rangeEnd.toISOString())
         .order('scheduled_at', { ascending: true }),
-      supabase.from('procedures').select('id, name, default_value').eq('active', true),
+      supabase.from('procedures').select('id, name, default_price').eq('archived', false),
     ]);
     setAppointments((aptData as Appointment[]) || []);
     setProcedures((procData as ProcedureOption[]) || []);
@@ -408,7 +408,7 @@ function AppointmentDialog({
         procedure_name: proc?.name || null,
         scheduled_at: newScheduledAt,
         status,
-        value: proc?.default_value ?? appointment.value,
+        value: proc?.default_price ?? appointment.value,
         notes: notes.trim() || null,
       };
       if (scheduleChanged) {
@@ -463,7 +463,7 @@ function AppointmentDialog({
           procedure_name: proc?.name || null,
           scheduled_at: newScheduledAt,
           status: 'scheduled',
-          value: proc?.default_value ?? null,
+          value: proc?.default_price ?? null,
           notes: notes.trim() || null,
         })
         .select()
