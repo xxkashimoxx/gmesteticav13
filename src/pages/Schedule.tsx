@@ -401,7 +401,7 @@ function AppointmentDialog({
         new Date(appointment.scheduled_at).getTime() !== new Date(newScheduledAt).getTime();
       const cancelled = status === 'cancelled' && appointment.status !== 'cancelled';
 
-      const payload: Record<string, unknown> = {
+      const payload: Partial<Appointment> = {
         patient_name: patientName.trim(),
         patient_phone: patientPhone.trim() || null,
         procedure_id: procedureId,
