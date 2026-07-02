@@ -61,6 +61,7 @@ export type Database = {
       }
       appointments: {
         Row: {
+          confirmation_sent_at: string | null
           confirmation_status: string
           created_at: string
           id: string
@@ -68,15 +69,20 @@ export type Database = {
           notes: string | null
           patient_name: string
           patient_phone: string | null
+          previous_scheduled_at: string | null
           procedure_id: string | null
           procedure_name: string | null
+          reminder_24h_sent_at: string | null
+          reminder_2h_sent_at: string | null
           reminder_sent_at: string | null
+          reschedule_notice_sent_at: string | null
           scheduled_at: string
           status: string
           updated_at: string
           value: number
         }
         Insert: {
+          confirmation_sent_at?: string | null
           confirmation_status?: string
           created_at?: string
           id?: string
@@ -84,15 +90,20 @@ export type Database = {
           notes?: string | null
           patient_name: string
           patient_phone?: string | null
+          previous_scheduled_at?: string | null
           procedure_id?: string | null
           procedure_name?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
           reminder_sent_at?: string | null
+          reschedule_notice_sent_at?: string | null
           scheduled_at: string
           status?: string
           updated_at?: string
           value?: number
         }
         Update: {
+          confirmation_sent_at?: string | null
           confirmation_status?: string
           created_at?: string
           id?: string
@@ -100,9 +111,13 @@ export type Database = {
           notes?: string | null
           patient_name?: string
           patient_phone?: string | null
+          previous_scheduled_at?: string | null
           procedure_id?: string | null
           procedure_name?: string | null
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
           reminder_sent_at?: string | null
+          reschedule_notice_sent_at?: string | null
           scheduled_at?: string
           status?: string
           updated_at?: string
