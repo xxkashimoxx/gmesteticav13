@@ -216,7 +216,12 @@ export default function Finance() {
                   )}
                 </div>
                 <div className="mt-2 pt-2 border-t border-border">
-                  <Button size="sm" variant="outline" className="w-full text-xs">
+                  <Button
+                    onClick={() => markPaid(procedure.id)}
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs"
+                  >
                     Marcar como Pago
                   </Button>
                 </div>
