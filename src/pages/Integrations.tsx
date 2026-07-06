@@ -205,7 +205,19 @@ export default function Integrations() {
               Leads e Dashboard.
             </p>
           </div>
-          <Button variant="secondary" className="w-full md:w-auto">
+          <Button
+            onClick={async () => {
+              const url = `${window.location.origin}/auth`;
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success('Link de acesso copiado', { description: url });
+              } catch {
+                window.prompt('Copie o link e envie ao gestor:', url);
+              }
+            }}
+            variant="secondary"
+            className="w-full md:w-auto"
+          >
             <Key className="w-4 h-4 mr-2" />
             Gerar acesso
           </Button>
