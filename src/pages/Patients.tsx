@@ -203,11 +203,11 @@ export default function Patients() {
                       <Eye className="w-4 h-4 mr-2" />
                       Ver Detalhes
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast.info('Edição em breve — use a Agenda para atualizar informações')}>
                       <Edit className="w-4 h-4 mr-2" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/schedule')}>
                       <Calendar className="w-4 h-4 mr-2" />
                       Agendar
                     </DropdownMenuItem>
