@@ -160,7 +160,10 @@ export default function Integrations() {
             Conecte tráfego pago, pixels e mensageria à agenda da clínica
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={() => toast.info('Escolha uma integração abaixo para conectar')}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <Plug className="w-4 h-4 mr-2" />
           Nova Integração
         </Button>
