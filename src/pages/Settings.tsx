@@ -1,32 +1,141 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { 
+import {
   Settings as SettingsIcon,
   User,
   Bell,
   Shield,
   Palette,
   Database,
-  Save
+  Save,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+const SETTINGS_KEY = 'gm.settings.v1';
+type SettingsShape = {
+  clinicName: string;
+  doctorName: string;
+  phone: string;
+  email: string;
+  address: string;
+  notifications: { reminder: boolean; pending: boolean; newAppt: boolean; monthly: boolean };
+  security: { twoFactor: boolean; backup: boolean; sessionTimeout: number };
+  timezone: string;
+  currency: string;
+  dateFormat: string;
+  theme: 'light' | 'dark' | 'auto';
+  density: 'compact' | 'comfortable' | 'spacious';
+};
+
+const DEFAULTS: SettingsShape = {
+  clinicName: 'GM Estética Avançada',
+  doctorName: 'Dra. Goreti',
+  phone: '',
+  email: '',
+  address: '',
+  notifications: { reminder: true, pending: true, newAppt: false, monthly: true },
+  security: { twoFactor: false, backup: true, sessionTimeout: 30 },
+  timezone: 'America/Sao_Paulo',
+  currency: 'BRL',
+  dateFormat: 'dd/mm/yyyy',
+  theme: 'light',
+  density: 'comfortable',
+};
+
+function applyTheme(theme: SettingsShape['theme']) {
+  const root = document.documentElement;
+  const dark =
+    theme === 'dark' ||
+    (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  root.classList.toggle('dark', dark);
+}
 
 export default function Settings() {
+  const [s, setS] = useState<SettingsShape>(DEFAULTS);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) setS({ ...DEFAULTS, ...JSON.parse(raw) });
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    applyTheme(s.theme);
+  }, [s.theme]);
+
+  function update<K extends keyof SettingsShape>(k: K, v: SettingsShape[K]) {
+    setS((prev) => ({ ...prev, [k]: v }));
+  }
+
+  function handleSave() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    toast.success('Configurações salvas');
+  }
+
+  async function handleChangePassword() {
+    const pwd = window.prompt('Nova senha (mínimo 6 caracteres):');
+    if (!pwd) return;
+    if (pwd.length < 6) return toast.error('Senha muito curta');
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    if (error) toast.error(error.message);
+    else toast.success('Senha atualizada');
+  }
+
+  async function handleExport() {
+    toast.loading('Exportando dados...', { id: 'exp' });
+    const [leads, appts, procs, patients] = await Promise.all([
+      supabase.from('leads').select('*'),
+      supabase.from('appointments').select('*'),
+      supabase.from('procedures').select('*'),
+      supabase.from('patients').select('*'),
+    ]);
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      leads: leads.data ?? [],
+      appointments: appts.data ?? [],
+      procedures: procs.data ?? [],
+      patients: patients.data ?? [],
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gm-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Backup gerado', { id: 'exp' });
+  }
+
+  function handleClearCache() {
+    if (!window.confirm('Limpar cache local? Você continuará logado.')) return;
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('gm.'))
+      .forEach((k) => localStorage.removeItem(k));
+    toast.success('Cache limpo');
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">Configurações</h1>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={handleSave}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <Save className="w-4 h-4 mr-2" />
           Salvar Alterações
         </Button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-
-        {/* Profile Settings */}
         <Card className="shadow-card border-0 bg-gradient-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -37,48 +146,53 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="clinic-name">Nome da Clínica</Label>
-              <Input 
-                id="clinic-name" 
-                defaultValue="Clínica de Estética Avançada"
+              <Input
+                id="clinic-name"
+                value={s.clinicName}
+                onChange={(e) => update('clinicName', e.target.value)}
                 className="bg-background"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="doctor-name">Nome do Profissional</Label>
-              <Input 
-                id="doctor-name" 
-                defaultValue="Dr. Admin"
+              <Input
+                id="doctor-name"
+                value={s.doctorName}
+                onChange={(e) => update('doctorName', e.target.value)}
                 className="bg-background"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clinic-phone">Telefone</Label>
-              <Input 
-                id="clinic-phone" 
-                defaultValue="(11) 99999-9999"
+              <Input
+                id="clinic-phone"
+                value={s.phone}
+                onChange={(e) => update('phone', e.target.value)}
                 className="bg-background"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clinic-email">E-mail</Label>
-              <Input 
-                id="clinic-email" 
-                defaultValue="contato@clinica.com"
+              <Input
+                id="clinic-email"
+                type="email"
+                value={s.email}
+                onChange={(e) => update('email', e.target.value)}
                 className="bg-background"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="clinic-address">Endereço</Label>
-              <Input 
-                id="clinic-address" 
-                defaultValue="Rua da Beleza, 123 - São Paulo, SP"
+              <Input
+                id="clinic-address"
+                value={s.address}
+                onChange={(e) => update('address', e.target.value)}
                 className="bg-background"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
         <Card className="shadow-card border-0 bg-gradient-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -87,38 +201,28 @@ export default function Settings() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Lembretes de Agendamento</p>
-                <p className="text-sm text-muted-foreground">Notificar 24h antes dos procedimentos</p>
+            {[
+              { key: 'reminder', title: 'Lembretes de Agendamento', desc: 'Notificar 24h antes dos procedimentos' },
+              { key: 'pending', title: 'Pagamentos Pendentes', desc: 'Alertas para valores em atraso' },
+              { key: 'newAppt', title: 'Novos Agendamentos', desc: 'Notificar quando houver novos agendamentos' },
+              { key: 'monthly', title: 'Relatórios Mensais', desc: 'Envio automático de relatórios financeiros' },
+            ].map((n) => (
+              <div key={n.key} className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">{n.title}</p>
+                  <p className="text-sm text-muted-foreground">{n.desc}</p>
+                </div>
+                <Switch
+                  checked={s.notifications[n.key as keyof SettingsShape['notifications']]}
+                  onCheckedChange={(v) =>
+                    update('notifications', { ...s.notifications, [n.key]: v })
+                  }
+                />
               </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Pagamentos Pendentes</p>
-                <p className="text-sm text-muted-foreground">Alertas para valores em atraso</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Novos Agendamentos</p>
-                <p className="text-sm text-muted-foreground">Notificar quando houver novos agendamentos</p>
-              </div>
-              <Switch />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Relatórios Mensais</p>
-                <p className="text-sm text-muted-foreground">Envio automático de relatórios financeiros</p>
-              </div>
-              <Switch defaultChecked />
-            </div>
+            ))}
           </CardContent>
         </Card>
 
-        {/* System Settings */}
         <Card className="shadow-card border-0 bg-gradient-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -129,10 +233,11 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="timezone">Fuso Horário</Label>
-              <select 
-                id="timezone" 
+              <select
+                id="timezone"
                 className="w-full p-2 border border-input rounded-md bg-background"
-                defaultValue="America/Sao_Paulo"
+                value={s.timezone}
+                onChange={(e) => update('timezone', e.target.value)}
               >
                 <option value="America/Sao_Paulo">Brasília (GMT-3)</option>
                 <option value="America/New_York">Nova York (GMT-5)</option>
@@ -141,10 +246,11 @@ export default function Settings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">Moeda</Label>
-              <select 
-                id="currency" 
+              <select
+                id="currency"
                 className="w-full p-2 border border-input rounded-md bg-background"
-                defaultValue="BRL"
+                value={s.currency}
+                onChange={(e) => update('currency', e.target.value)}
               >
                 <option value="BRL">Real Brasileiro (R$)</option>
                 <option value="USD">Dólar Americano ($)</option>
@@ -153,10 +259,11 @@ export default function Settings() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="date-format">Formato de Data</Label>
-              <select 
-                id="date-format" 
+              <select
+                id="date-format"
                 className="w-full p-2 border border-input rounded-md bg-background"
-                defaultValue="dd/mm/yyyy"
+                value={s.dateFormat}
+                onChange={(e) => update('dateFormat', e.target.value)}
               >
                 <option value="dd/mm/yyyy">DD/MM/AAAA</option>
                 <option value="mm/dd/yyyy">MM/DD/AAAA</option>
@@ -166,7 +273,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Security Settings */}
         <Card className="shadow-card border-0 bg-gradient-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -180,33 +286,48 @@ export default function Settings() {
                 <p className="font-medium text-foreground">Autenticação em Duas Etapas</p>
                 <p className="text-sm text-muted-foreground">Adiciona uma camada extra de segurança</p>
               </div>
-              <Switch />
+              <Switch
+                checked={s.security.twoFactor}
+                onCheckedChange={(v) => update('security', { ...s.security, twoFactor: v })}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-foreground">Backup Automático</p>
                 <p className="text-sm text-muted-foreground">Backup diário dos dados da clínica</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={s.security.backup}
+                onCheckedChange={(v) => update('security', { ...s.security, backup: v })}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="session-timeout">Timeout da Sessão (minutos)</Label>
-              <Input 
-                id="session-timeout" 
+              <Input
+                id="session-timeout"
                 type="number"
-                defaultValue="30"
+                value={s.security.sessionTimeout}
+                onChange={(e) =>
+                  update('security', {
+                    ...s.security,
+                    sessionTimeout: Number(e.target.value) || 30,
+                  })
+                }
                 className="bg-background"
               />
             </div>
             <div className="pt-2">
-              <Button variant="outline" className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+              <Button
+                onClick={handleChangePassword}
+                variant="outline"
+                className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
                 Alterar Senha
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Appearance */}
         <Card className="shadow-card border-0 bg-gradient-card xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -215,33 +336,24 @@ export default function Settings() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <p className="font-medium text-foreground">Tema</p>
                 <div className="space-y-2">
-                  <label className="flex items-center space-x-2">
-                    <input type="radio" name="theme" value="light" defaultChecked className="text-primary" />
-                    <span className="text-sm text-foreground">Claro</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="radio" name="theme" value="dark" className="text-primary" />
-                    <span className="text-sm text-foreground">Escuro</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="radio" name="theme" value="auto" className="text-primary" />
-                    <span className="text-sm text-foreground">Automático</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="font-medium text-foreground">Cor Principal</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500', 'bg-orange-500', 'bg-red-500'].map((color, index) => (
-                    <button
-                      key={index}
-                      className={`w-8 h-8 rounded-full ${color} ${index === 0 ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
-                    />
+                  {(['light', 'dark', 'auto'] as const).map((t) => (
+                    <label key={t} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="theme"
+                        value={t}
+                        checked={s.theme === t}
+                        onChange={() => update('theme', t)}
+                        className="text-primary"
+                      />
+                      <span className="text-sm text-foreground capitalize">
+                        {t === 'light' ? 'Claro' : t === 'dark' ? 'Escuro' : 'Automático'}
+                      </span>
+                    </label>
                   ))}
                 </div>
               </div>
@@ -249,18 +361,21 @@ export default function Settings() {
               <div className="space-y-3">
                 <p className="font-medium text-foreground">Densidade da Interface</p>
                 <div className="space-y-2">
-                  <label className="flex items-center space-x-2">
-                    <input type="radio" name="density" value="compact" className="text-primary" />
-                    <span className="text-sm text-foreground">Compacta</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="radio" name="density" value="comfortable" defaultChecked className="text-primary" />
-                    <span className="text-sm text-foreground">Confortável</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="radio" name="density" value="spacious" className="text-primary" />
-                    <span className="text-sm text-foreground">Espaçosa</span>
-                  </label>
+                  {(['compact', 'comfortable', 'spacious'] as const).map((d) => (
+                    <label key={d} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="density"
+                        value={d}
+                        checked={s.density === d}
+                        onChange={() => update('density', d)}
+                        className="text-primary"
+                      />
+                      <span className="text-sm text-foreground capitalize">
+                        {d === 'compact' ? 'Compacta' : d === 'comfortable' ? 'Confortável' : 'Espaçosa'}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
             </div>
@@ -268,7 +383,6 @@ export default function Settings() {
         </Card>
       </div>
 
-      {/* Data Management */}
       <Card className="shadow-card border-0 bg-gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -278,15 +392,19 @@ export default function Settings() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button variant="outline" className="border-border">
+            <Button onClick={handleExport} variant="outline" className="border-border">
               <Database className="w-4 h-4 mr-2" />
               Exportar Dados
             </Button>
-            <Button variant="outline" className="border-border">
+            <Button onClick={handleExport} variant="outline" className="border-border">
               <Shield className="w-4 h-4 mr-2" />
               Backup Manual
             </Button>
-            <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+            <Button
+              onClick={handleClearCache}
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
               <Database className="w-4 h-4 mr-2" />
               Limpar Cache
             </Button>
