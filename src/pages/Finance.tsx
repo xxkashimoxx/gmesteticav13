@@ -41,13 +41,34 @@ export default function Finance() {
     }))
   );
   
-  const filteredProcedures = allProcedures.filter(procedure =>
-    procedure.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    procedure.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const withOverrides = allProcedures.map((p) => ({
+    ...p,
+    paid: paidOverrides[p.id] ?? p.paid,
+  }));
+
+  const filteredProcedures = withOverrides.filter(
+    (procedure) =>
+      procedure.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      procedure.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const paidProcedures = filteredProcedures.filter(p => p.paid);
-  const unpaidProcedures = filteredProcedures.filter(p => !p.paid);
+  const paidProcedures =
+    payFilter === 'unpaid' ? [] : filteredProcedures.filter((p) => p.paid);
+  const unpaidProcedures =
+    payFilter === 'paid' ? [] : filteredProcedures.filter((p) => !p.paid);
+
+  function cycleFilter() {
+    const next: PayFilter = payFilter === 'all' ? 'paid' : payFilter === 'paid' ? 'unpaid' : 'all';
+    setPayFilter(next);
+    toast.info(
+      next === 'all' ? 'Mostrando todos' : next === 'paid' ? 'Somente pagos' : 'Somente pendentes',
+    );
+  }
+
+  function markPaid(id: string) {
+    setPaidOverrides((prev) => ({ ...prev, [id]: true }));
+    toast.success('Marcado como pago');
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
