@@ -1,25 +1,31 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  DollarSign,
+  TrendingUp,
   Search,
   Filter,
   Calendar,
   User,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
 } from 'lucide-react';
 import { mockPatients } from '@/data/mockData';
 import { StatCard } from '@/components/StatCard';
 
+type PayFilter = 'all' | 'paid' | 'unpaid';
+
 export default function Finance() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [payFilter, setPayFilter] = useState<PayFilter>('all');
+  const [paidOverrides, setPaidOverrides] = useState<Record<string, boolean>>({});
   
   // Calculate financial metrics
   const totalRevenue = mockPatients.reduce((sum, patient) => sum + patient.paidValue, 0);
