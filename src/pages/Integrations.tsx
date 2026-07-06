@@ -57,6 +57,21 @@ function IntegrationCard({ integration }: { integration: Integration }) {
   const CatIcon = cat.icon;
   const StIcon = st.icon;
   const connected = integration.status === 'connected';
+  const [enabled, setEnabled] = useState(connected);
+
+  const docsUrl: Record<string, string> = {
+    ads: 'https://business.facebook.com/adsmanager',
+    analytics: 'https://analytics.google.com/',
+    messaging: 'https://business.whatsapp.com/',
+    crm: 'https://www.rdstation.com/',
+    automation: 'https://zapier.com/apps',
+  };
+  const url = docsUrl[integration.category] ?? 'https://google.com';
+
+  function handleClick() {
+    window.open(url, '_blank', 'noopener');
+    toast.info(connected ? `Abrindo ${integration.name}` : `Conectar ${integration.name}`);
+  }
 
   return (
     <Card className="shadow-card border-0 bg-gradient-card hover:shadow-elevated transition-smooth">
