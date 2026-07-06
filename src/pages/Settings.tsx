@@ -91,18 +91,16 @@ export default function Settings() {
 
   async function handleExport() {
     toast.loading('Exportando dados...', { id: 'exp' });
-    const [leads, appts, procs, patients] = await Promise.all([
+    const [leads, appts, procs] = await Promise.all([
       supabase.from('leads').select('*'),
       supabase.from('appointments').select('*'),
       supabase.from('procedures').select('*'),
-      supabase.from('patients').select('*'),
     ]);
     const payload = {
       exportedAt: new Date().toISOString(),
       leads: leads.data ?? [],
       appointments: appts.data ?? [],
       procedures: procs.data ?? [],
-      patients: patients.data ?? [],
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
