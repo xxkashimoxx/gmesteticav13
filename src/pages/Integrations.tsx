@@ -108,10 +108,17 @@ function IntegrationCard({ integration }: { integration: Integration }) {
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <div className="flex items-center gap-2">
-            <Switch defaultChecked={connected} />
+            <Switch
+              checked={enabled}
+              onCheckedChange={(v) => {
+                setEnabled(v);
+                toast.info(`${integration.name}: sincronização ${v ? 'ativada' : 'pausada'}`);
+              }}
+            />
             <span className="text-xs text-muted-foreground">Sincronização</span>
           </div>
           <Button
+            onClick={handleClick}
             size="sm"
             variant={connected ? 'outline' : 'default'}
             className={cn(
