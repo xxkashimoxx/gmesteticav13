@@ -124,9 +124,9 @@ export default function Finance() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" className="border-border w-full sm:w-auto">
+        <Button onClick={cycleFilter} variant="outline" className="border-border w-full sm:w-auto">
           <Filter className="w-4 h-4 mr-2" />
-          Filtros
+          Filtros: {payFilter === 'all' ? 'Todos' : payFilter === 'paid' ? 'Pagos' : 'Pendentes'}
         </Button>
       </div>
 
