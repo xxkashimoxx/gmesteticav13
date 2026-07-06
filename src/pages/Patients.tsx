@@ -79,6 +79,7 @@ const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function Patients() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState<StatusKey>('all');
   const [selected, setSelected] = useState<Patient | null>(null);
