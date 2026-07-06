@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,6 +79,7 @@ const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function Patients() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [status, setStatus] = useState<StatusKey>('all');
   const [selected, setSelected] = useState<Patient | null>(null);
@@ -113,7 +116,10 @@ export default function Patients() {
             {filteredPatients.length} de {mockPatients.length} pacientes
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={() => toast.info('Cadastro de paciente ocorre ao criar agendamento em /agenda')}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Paciente
         </Button>
@@ -197,11 +203,11 @@ export default function Patients() {
                       <Eye className="w-4 h-4 mr-2" />
                       Ver Detalhes
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => toast.info('Edição em breve — use a Agenda para atualizar informações')}>
                       <Edit className="w-4 h-4 mr-2" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/schedule')}>
                       <Calendar className="w-4 h-4 mr-2" />
                       Agendar
                     </DropdownMenuItem>

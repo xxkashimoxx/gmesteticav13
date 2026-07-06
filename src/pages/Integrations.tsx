@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,6 +57,21 @@ function IntegrationCard({ integration }: { integration: Integration }) {
   const CatIcon = cat.icon;
   const StIcon = st.icon;
   const connected = integration.status === 'connected';
+  const [enabled, setEnabled] = useState(connected);
+
+  const docsUrl: Record<string, string> = {
+    ads: 'https://business.facebook.com/adsmanager',
+    analytics: 'https://analytics.google.com/',
+    messaging: 'https://business.whatsapp.com/',
+    crm: 'https://www.rdstation.com/',
+    automation: 'https://zapier.com/apps',
+  };
+  const url = docsUrl[integration.category] ?? 'https://google.com';
+
+  function handleClick() {
+    window.open(url, '_blank', 'noopener');
+    toast.info(connected ? `Abrindo ${integration.name}` : `Conectar ${integration.name}`);
+  }
 
   return (
     <Card className="shadow-card border-0 bg-gradient-card hover:shadow-elevated transition-smooth">
@@ -91,10 +108,17 @@ function IntegrationCard({ integration }: { integration: Integration }) {
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <div className="flex items-center gap-2">
-            <Switch defaultChecked={connected} />
+            <Switch
+              checked={enabled}
+              onCheckedChange={(v) => {
+                setEnabled(v);
+                toast.info(`${integration.name}: sincronização ${v ? 'ativada' : 'pausada'}`);
+              }}
+            />
             <span className="text-xs text-muted-foreground">Sincronização</span>
           </div>
           <Button
+            onClick={handleClick}
             size="sm"
             variant={connected ? 'outline' : 'default'}
             className={cn(
@@ -136,7 +160,10 @@ export default function Integrations() {
             Conecte tráfego pago, pixels e mensageria à agenda da clínica
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={() => toast.info('Escolha uma integração abaixo para conectar')}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <Plug className="w-4 h-4 mr-2" />
           Nova Integração
         </Button>
@@ -178,7 +205,19 @@ export default function Integrations() {
               Leads e Dashboard.
             </p>
           </div>
-          <Button variant="secondary" className="w-full md:w-auto">
+          <Button
+            onClick={async () => {
+              const url = `${window.location.origin}/auth`;
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success('Link de acesso copiado', { description: url });
+              } catch {
+                window.prompt('Copie o link e envie ao gestor:', url);
+              }
+            }}
+            variant="secondary"
+            className="w-full md:w-auto"
+          >
             <Key className="w-4 h-4 mr-2" />
             Gerar acesso
           </Button>

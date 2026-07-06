@@ -1,25 +1,31 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  DollarSign,
+  TrendingUp,
   Search,
   Filter,
   Calendar,
   User,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
 } from 'lucide-react';
 import { mockPatients } from '@/data/mockData';
 import { StatCard } from '@/components/StatCard';
 
+type PayFilter = 'all' | 'paid' | 'unpaid';
+
 export default function Finance() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [payFilter, setPayFilter] = useState<PayFilter>('all');
+  const [paidOverrides, setPaidOverrides] = useState<Record<string, boolean>>({});
   
   // Calculate financial metrics
   const totalRevenue = mockPatients.reduce((sum, patient) => sum + patient.paidValue, 0);
@@ -35,19 +41,43 @@ export default function Finance() {
     }))
   );
   
-  const filteredProcedures = allProcedures.filter(procedure =>
-    procedure.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    procedure.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const withOverrides = allProcedures.map((p) => ({
+    ...p,
+    paid: paidOverrides[p.id] ?? p.paid,
+  }));
+
+  const filteredProcedures = withOverrides.filter(
+    (procedure) =>
+      procedure.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      procedure.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const paidProcedures = filteredProcedures.filter(p => p.paid);
-  const unpaidProcedures = filteredProcedures.filter(p => !p.paid);
+  const paidProcedures =
+    payFilter === 'unpaid' ? [] : filteredProcedures.filter((p) => p.paid);
+  const unpaidProcedures =
+    payFilter === 'paid' ? [] : filteredProcedures.filter((p) => !p.paid);
+
+  function cycleFilter() {
+    const next: PayFilter = payFilter === 'all' ? 'paid' : payFilter === 'paid' ? 'unpaid' : 'all';
+    setPayFilter(next);
+    toast.info(
+      next === 'all' ? 'Mostrando todos' : next === 'paid' ? 'Somente pagos' : 'Somente pendentes',
+    );
+  }
+
+  function markPaid(id: string) {
+    setPaidOverrides((prev) => ({ ...prev, [id]: true }));
+    toast.success('Marcado como pago');
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">Financeiro</h1>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={() => navigate('/schedule')}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <DollarSign className="w-4 h-4 mr-2" />
           Registrar Pagamento
         </Button>
@@ -94,9 +124,9 @@ export default function Finance() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" className="border-border w-full sm:w-auto">
+        <Button onClick={cycleFilter} variant="outline" className="border-border w-full sm:w-auto">
           <Filter className="w-4 h-4 mr-2" />
-          Filtros
+          Filtros: {payFilter === 'all' ? 'Todos' : payFilter === 'paid' ? 'Pagos' : 'Pendentes'}
         </Button>
       </div>
 
@@ -186,7 +216,12 @@ export default function Finance() {
                   )}
                 </div>
                 <div className="mt-2 pt-2 border-t border-border">
-                  <Button size="sm" variant="outline" className="w-full text-xs">
+                  <Button
+                    onClick={() => markPaid(procedure.id)}
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs"
+                  >
                     Marcar como Pago
                   </Button>
                 </div>
