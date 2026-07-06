@@ -74,7 +74,10 @@ export default function Finance() {
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">Financeiro</h1>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={() => navigate('/schedule')}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <DollarSign className="w-4 h-4 mr-2" />
           Registrar Pagamento
         </Button>
