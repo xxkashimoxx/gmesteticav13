@@ -116,7 +116,10 @@ export default function Patients() {
             {filteredPatients.length} de {mockPatients.length} pacientes
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto">
+        <Button
+          onClick={() => toast.info('Cadastro de paciente ocorre ao criar agendamento em /agenda')}
+          className="bg-gradient-primary text-primary-foreground shadow-card w-full sm:w-auto"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Paciente
         </Button>
