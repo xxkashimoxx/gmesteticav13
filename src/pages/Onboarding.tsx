@@ -214,6 +214,10 @@ export default function Onboarding() {
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
+      <PageMeta
+        title="Configuração inicial — GM Estética"
+        description="Configure sua clínica em 4 passos rápidos: dados da equipe, horários de atendimento e preferências operacionais."
+      />
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
           <Sparkles className="w-4 h-4" /> Bem-vinda à GM Estética Avançada
