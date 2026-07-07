@@ -25,7 +25,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatCard } from '@/components/StatCard';
 import { brl } from '@/lib/format';
-import { buildWhatsAppUrl } from '@/lib/whatsapp';
+import { buildMessage, buildWhatsAppUrl, TEMPLATE_LABELS, type WhatsAppTemplateKind } from '@/lib/whatsapp';
+import { WhatsAppComposer, type WhatsAppTemplate } from '@/components/WhatsAppComposer';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
 
