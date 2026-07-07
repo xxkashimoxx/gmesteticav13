@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Today from "./pages/Today";
 import Patients from "./pages/Patients";
+import PatientDetail from "./pages/PatientDetail";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="hoje" element={<ProtectedRoute allow={["admin", "staff"]}><Today /></ProtectedRoute>} />
               {/* Admin + staff */}
               <Route path="patients" element={<ProtectedRoute allow={["admin", "staff"]}><Patients /></ProtectedRoute>} />
+              <Route path="patients/:id" element={<ProtectedRoute allow={["admin", "staff"]}><PatientDetail /></ProtectedRoute>} />
               <Route path="finance" element={<ProtectedRoute allow={["admin", "staff"]}><Finance /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute allow={["admin"]}><Settings /></ProtectedRoute>} />
               {/* Shared with traffic managers */}
