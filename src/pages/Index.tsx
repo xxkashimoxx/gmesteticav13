@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Sidebar, MobileHeader, MobileBottomNav } from '@/components/Sidebar';
+import { GlobalSearch } from '@/components/GlobalSearch';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useClinicSettings } from '@/hooks/useClinicSettings';
@@ -21,6 +22,7 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
+      <GlobalSearch />
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <MobileHeader />
