@@ -27,6 +27,7 @@ import { StatCard } from '@/components/StatCard';
 import { brl } from '@/lib/format';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn } from '@/lib/utils';
+import type { Database } from '@/integrations/supabase/types';
 
 type AppointmentStatus =
   | 'scheduled'
