@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Syringe,
   LogOut,
+  Sun,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -53,22 +54,23 @@ function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'h
 type NavItem = { name: string; href: string; icon: typeof BarChart3; roles?: AppRole[] };
 
 const navigation: NavItem[] = [
+  { name: 'Hoje', href: '/hoje', icon: Sun, roles: ['admin', 'staff'] },
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'Leads', href: '/leads', icon: Flame },
   { name: 'Procedimentos', href: '/procedures', icon: Syringe },
-  { name: 'Pacientes', href: '/patients', icon: Users, roles: ['admin'] },
+  { name: 'Pacientes', href: '/patients', icon: Users, roles: ['admin', 'staff'] },
   { name: 'Agenda', href: '/schedule', icon: Calendar },
-  { name: 'Financeiro', href: '/finance', icon: CreditCard, roles: ['admin'] },
+  { name: 'Financeiro', href: '/finance', icon: CreditCard, roles: ['admin', 'staff'] },
   { name: 'Integrações', href: '/integrations', icon: Plug },
   { name: 'Configurações', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 const mobileBottomNavBase: NavItem[] = [
-  { name: 'Início', href: '/', icon: BarChart3 },
-  { name: 'Leads', href: '/leads', icon: Flame },
+  { name: 'Hoje', href: '/hoje', icon: Sun },
   { name: 'Agenda', href: '/schedule', icon: Calendar },
-  { name: 'Proced.', href: '/procedures', icon: Syringe },
-  { name: 'Integrar', href: '/integrations', icon: Plug },
+  { name: 'Leads', href: '/leads', icon: Flame },
+  { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Mais', href: '/', icon: BarChart3 },
 ];
 
 function visibleNav(role: AppRole | null) {
@@ -79,7 +81,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const { role, user, signOut } = useAuth();
   const items = visibleNav(role);
-  const roleLabel = role === 'admin' ? 'Administradora' : role === 'traffic_manager' ? 'Gestor de tráfego' : '—';
+  const roleLabel = role === 'admin' ? 'Administradora' : role === 'staff' ? 'Recepção' : role === 'traffic_manager' ? 'Gestor de tráfego' : '—';
 
   return (
     <div className="flex flex-col h-full bg-sidebar">

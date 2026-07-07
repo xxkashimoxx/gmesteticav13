@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import Today from "./pages/Today";
 import Patients from "./pages/Patients";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
@@ -16,6 +17,7 @@ import Integrations from "./pages/Integrations";
 import Procedures from "./pages/Procedures";
 import Auth from "./pages/Auth";
 import LeadCapture from "./pages/LeadCapture";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/captacao" element={<LeadCapture />} />
+            <Route path="/onboarding" element={<ProtectedRoute allow={["admin"]}><Onboarding /></ProtectedRoute>} />
             <Route
               path="/"
               element={
@@ -39,9 +42,10 @@ const App = () => (
               }
             >
               <Route index element={<Dashboard />} />
-              {/* Admin-only */}
-              <Route path="patients" element={<ProtectedRoute allow={["admin"]}><Patients /></ProtectedRoute>} />
-              <Route path="finance" element={<ProtectedRoute allow={["admin"]}><Finance /></ProtectedRoute>} />
+              <Route path="hoje" element={<ProtectedRoute allow={["admin", "staff"]}><Today /></ProtectedRoute>} />
+              {/* Admin + staff */}
+              <Route path="patients" element={<ProtectedRoute allow={["admin", "staff"]}><Patients /></ProtectedRoute>} />
+              <Route path="finance" element={<ProtectedRoute allow={["admin", "staff"]}><Finance /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute allow={["admin"]}><Settings /></ProtectedRoute>} />
               {/* Shared with traffic managers */}
               <Route path="schedule" element={<Schedule />} />
