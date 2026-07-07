@@ -34,11 +34,13 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
+  buildMessage,
   buildWhatsAppUrl,
   TEMPLATE_LABELS,
   type WhatsAppTemplateKind,
   type AppointmentLike,
 } from '@/lib/whatsapp';
+import { WhatsAppComposer, type WhatsAppTemplate } from '@/components/WhatsAppComposer';
 import { brl } from '@/lib/format';
 
 type Appointment = {
@@ -99,6 +101,8 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [creating, setCreating] = useState(false);
+  const [waState, setWaState] = useState<{ apt: Appointment; kind: WhatsAppTemplateKind } | null>(null);
+
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -163,11 +167,40 @@ export default function Schedule() {
     );
   }
 
-  async function sendReminder(apt: Appointment, kind: WhatsAppTemplateKind) {
-    if (!fireWhatsApp(kind, apt)) return;
-    const field = kind === 'reminder_24h' ? 'reminder_24h_sent_at' : 'reminder_2h_sent_at';
-    await markSent(apt.id, field);
+  function sendReminder(apt: Appointment, kind: WhatsAppTemplateKind) {
+    if (!apt.patient_phone) {
+      toast({ title: 'Sem número de WhatsApp', description: 'Cadastre o telefone da paciente.', variant: 'destructive' });
+      return;
+    }
+    setWaState({ apt, kind });
   }
+
+  async function onReminderSent(apt: Appointment, kind: string | undefined) {
+    if (!kind) return;
+    const field = kind === 'reminder_24h'
+      ? 'reminder_24h_sent_at'
+      : kind === 'reminder_2h'
+        ? 'reminder_2h_sent_at'
+        : kind === 'confirmation'
+          ? 'confirmation_sent_at'
+          : kind === 'reschedule'
+            ? 'reschedule_notice_sent_at'
+            : null;
+    if (field) await markSent(apt.id, field as keyof Appointment);
+  }
+
+  function buildAptTemplates(apt: Appointment): WhatsAppTemplate[] {
+    const like: AppointmentLike = {
+      patient_name: apt.patient_name,
+      patient_phone: apt.patient_phone,
+      procedure_name: apt.procedure_name,
+      scheduled_at: apt.scheduled_at,
+      previous_scheduled_at: apt.previous_scheduled_at ?? null,
+    };
+    const kinds: WhatsAppTemplateKind[] = ['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'];
+    return kinds.map((k) => ({ kind: k, label: TEMPLATE_LABELS[k], message: buildMessage(k, like) }));
+  }
+  void buildWhatsAppUrl;
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
@@ -357,6 +390,30 @@ export default function Schedule() {
           onSaved={load}
         />
       )}
+
+      {waState && (
+        <WhatsAppComposer
+          open={!!waState}
+          onOpenChange={(o) => !o && setWaState(null)}
+          phone={waState.apt.patient_phone}
+          patientName={waState.apt.patient_name}
+          appointmentId={waState.apt.id}
+          templates={buildAptTemplates(waState.apt)}
+          initialTemplateKind={waState.kind}
+          defaultIntent={
+            waState.kind === 'confirmation'
+              ? 'Confirmar agendamento'
+              : waState.kind === 'reminder_24h'
+                ? 'Lembrete 24h antes'
+                : waState.kind === 'reminder_2h'
+                  ? 'Lembrete 2h antes'
+                  : waState.kind === 'reschedule'
+                    ? 'Avisar remarcação'
+                    : 'Avisar cancelamento'
+          }
+          onSend={(kind) => onReminderSent(waState.apt, kind)}
+        />
+      )}
     </div>
   );
 }
@@ -382,6 +439,7 @@ function AppointmentDialog({
   const [status, setStatus] = useState(appointment?.status || 'scheduled');
   const [notes, setNotes] = useState(appointment?.notes || '');
   const [saving, setSaving] = useState(false);
+  const [composerKind, setComposerKind] = useState<WhatsAppTemplateKind | null>(null);
 
   async function save() {
     if (!patientName.trim() || !scheduledAt || !procedureId) {
@@ -574,7 +632,7 @@ function AppointmentDialog({
           {isEdit && (
             <div className="pt-2 border-t space-y-2">
               <div className="text-xs font-medium text-muted-foreground">
-                Enviar WhatsApp manualmente
+                Enviar WhatsApp com prévia + sugestões de IA
               </div>
               <div className="flex flex-wrap gap-2">
                 {(['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'] as WhatsAppTemplateKind[]).map(
@@ -584,7 +642,7 @@ function AppointmentDialog({
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => fireWhatsApp(k, previewApt)}
+                      onClick={() => setComposerKind(k)}
                     >
                       <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                       {TEMPLATE_LABELS[k]}
@@ -604,6 +662,21 @@ function AppointmentDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {isEdit && appointment && composerKind && (
+        <WhatsAppComposer
+          open={!!composerKind}
+          onOpenChange={(o) => !o && setComposerKind(null)}
+          phone={appointment.patient_phone}
+          patientName={appointment.patient_name}
+          appointmentId={appointment.id}
+          templates={(['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'] as WhatsAppTemplateKind[]).map((k) => ({
+            kind: k,
+            label: TEMPLATE_LABELS[k],
+            message: buildMessage(k, previewApt),
+          }))}
+          initialTemplateKind={composerKind}
+        />
+      )}
     </Dialog>
   );
 }
