@@ -138,8 +138,8 @@ export default function Today() {
     const action = NEXT_ACTION[apt.status];
     if (!action) return;
     setSavingId(apt.id);
-    const patch: Record<string, unknown> = { status: action.next };
     const now = new Date().toISOString();
+    const patch: Database['public']['Tables']['appointments']['Update'] = { status: action.next };
     if (action.next === 'arrived') patch.checked_in_at = now;
     if (action.next === 'in_progress') patch.started_at = now;
     if (action.next === 'completed') patch.finished_at = now;
