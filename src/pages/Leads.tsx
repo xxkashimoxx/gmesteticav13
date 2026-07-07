@@ -44,6 +44,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { brl, daysSince, LEAD_SOURCES, startOfWeek } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { WhatsAppComposer } from '@/components/WhatsAppComposer';
 
 type Temp = 'hot' | 'warm' | 'cold';
 type Stage = 'novo' | 'contato' | 'qualificado' | 'agendamento' | 'convertido' | 'perdido';
@@ -159,6 +160,9 @@ export default function Leads() {
     notes: '',
   });
   const [scheduling, setScheduling] = useState(false);
+
+  // WhatsApp composer
+  const [waLead, setWaLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     load();
@@ -412,12 +416,10 @@ export default function Leads() {
               size="sm"
               variant="outline"
               className="h-7 px-2"
-              asChild
-              title="WhatsApp"
+              onClick={() => setWaLead(l)}
+              title="WhatsApp com prévia + IA"
             >
-              <a href={`https://wa.me/${l.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
-                <MessageCircle className="w-3 h-3" />
-              </a>
+              <MessageCircle className="w-3 h-3" />
             </Button>
           )}
           {canEdit && l.stage !== 'convertido' && l.stage !== 'perdido' && (
@@ -904,10 +906,15 @@ export default function Leads() {
                   </Button>
                 )}
                 {detail.phone && (
-                  <Button variant="outline" asChild>
-                    <a href={`https://wa.me/${detail.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
-                      <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
-                    </a>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const l = detail;
+                      setDetail(null);
+                      setWaLead(l);
+                    }}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp + IA
                   </Button>
                 )}
                 <Button variant="outline" onClick={() => setDetail(null)}>Fechar</Button>
@@ -916,6 +923,27 @@ export default function Leads() {
           )}
         </DialogContent>
       </Dialog>
+
+      {waLead && (
+        <WhatsAppComposer
+          open={!!waLead}
+          onOpenChange={(o) => !o && setWaLead(null)}
+          phone={waLead.phone}
+          patientName={waLead.name}
+          leadId={waLead.id}
+          defaultIntent={
+            waLead.stage === 'novo'
+              ? 'Fazer primeiro contato e apresentar a clínica'
+              : waLead.stage === 'contato'
+                ? 'Qualificar interesse e responder dúvidas'
+                : waLead.stage === 'qualificado'
+                  ? 'Oferecer horário de avaliação'
+                  : waLead.stage === 'agendamento'
+                    ? 'Confirmar avaliação agendada'
+                    : 'Reengajar e retomar conversa'
+          }
+        />
+      )}
     </div>
   );
 }
