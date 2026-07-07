@@ -94,7 +94,7 @@ export default function Onboarding() {
       whatsapp_number: settings.whatsapp_number,
     });
     setWh(settings.working_hours as unknown as WH);
-    setSlotDuration(settings.slot_duration);
+    setSlotDuration(settings.slot_duration_min);
     setSlotBuffer(settings.slot_buffer_min);
   }, [settings]);
 
@@ -135,7 +135,7 @@ export default function Onboarding() {
     setSaving(true);
     const { error } = await upsert({
       working_hours: wh as unknown as never,
-      slot_duration: slotDuration,
+      slot_duration_min: slotDuration,
       slot_buffer_min: slotBuffer,
     });
     setSaving(false);
@@ -182,7 +182,7 @@ export default function Onboarding() {
   }
 
   function addProcedureRow() {
-    setProcs((p) => [...p, { name: '', duration: 60, default_price: 0, category: '' }]);
+    setProcs((p) => [...p, { name: '', duration: '60 min', default_price: 0, category: '' }]);
   }
 
   function loadCatalog() {
@@ -303,7 +303,7 @@ export default function Onboarding() {
                 </div>
                 <div className="col-span-4 md:col-span-2 grid gap-1">
                   <Label className="text-xs">Duração (min)</Label>
-                  <Input type="number" value={p.duration} onChange={(e) => setProcs((prev) => prev.map((it, idx) => idx === i ? { ...it, duration: Number(e.target.value) } : it))} />
+                  <Input value={p.duration} onChange={(e) => setProcs((prev) => prev.map((it, idx) => idx === i ? { ...it, duration: e.target.value } : it))} />
                 </div>
                 <div className="col-span-4 md:col-span-2 grid gap-1">
                   <Label className="text-xs">Preço (R$)</Label>
