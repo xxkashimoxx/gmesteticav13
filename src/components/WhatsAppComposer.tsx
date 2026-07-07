@@ -22,16 +22,26 @@ interface Suggestion {
   message: string;
 }
 
+export interface WhatsAppTemplate {
+  kind: string;
+  label: string;
+  message: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   phone: string | null;
   patientName: string;
   defaultMessage?: string;
+  templates?: WhatsAppTemplate[];
+  initialTemplateKind?: string;
   leadId?: string;
   appointmentId?: string;
   defaultIntent?: string;
   title?: string;
+  /** Called when the user opens WhatsApp; receives the selected template kind (if any). */
+  onSend?: (templateKind?: string) => void;
 }
 
 export function WhatsAppComposer({
@@ -40,12 +50,20 @@ export function WhatsAppComposer({
   phone,
   patientName,
   defaultMessage = '',
+  templates,
+  initialTemplateKind,
   leadId,
   appointmentId,
   defaultIntent = 'Continuar conversa e engajar',
   title,
+  onSend,
 }: Props) {
-  const [message, setMessage] = useState(defaultMessage);
+  const initialTpl =
+    templates?.find((t) => t.kind === initialTemplateKind) ?? templates?.[0];
+  const initialMsg = initialTpl?.message ?? defaultMessage;
+
+  const [message, setMessage] = useState(initialMsg);
+  const [selectedTpl, setSelectedTpl] = useState<string | undefined>(initialTpl?.kind);
   const [intent, setIntent] = useState(defaultIntent);
   const [lastReceived, setLastReceived] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,17 +71,28 @@ export function WhatsAppComposer({
 
   useEffect(() => {
     if (open) {
-      setMessage(defaultMessage);
+      const tpl = templates?.find((t) => t.kind === initialTemplateKind) ?? templates?.[0];
+      setMessage(tpl?.message ?? defaultMessage);
+      setSelectedTpl(tpl?.kind);
       setSuggestions([]);
       setIntent(defaultIntent);
       setLastReceived('');
     }
-  }, [open, defaultMessage, defaultIntent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultMessage, defaultIntent, initialTemplateKind]);
+
+  function pickTemplate(kind: string) {
+    const t = templates?.find((x) => x.kind === kind);
+    if (!t) return;
+    setSelectedTpl(kind);
+    setMessage(t.message);
+  }
 
   const normalized = normalizePhone(phone);
   const waUrl = normalized
     ? `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`
     : null;
+
 
   async function suggest() {
     if (!leadId && !appointmentId) {
