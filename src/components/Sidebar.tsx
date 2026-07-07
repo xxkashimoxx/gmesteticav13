@@ -13,6 +13,7 @@ import {
   Syringe,
   LogOut,
   Sun,
+  Search,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -162,6 +163,15 @@ export function MobileHeader() {
         </h1>
       </div>
       <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-primary-foreground hover:bg-primary-foreground/10"
+          aria-label="Busca global"
+          onClick={() => (window as any).__openGlobalSearch?.()}
+        >
+          <Search className="w-5 h-5" />
+        </Button>
         <WhatsAppGroupButton variant="header" />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
