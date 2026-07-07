@@ -94,7 +94,7 @@ export default function Onboarding() {
       whatsapp_number: settings.whatsapp_number,
     });
     setWh(settings.working_hours as unknown as WH);
-    setSlotDuration(settings.slot_duration_min);
+    setSlotDuration(settings.slot_duration);
     setSlotBuffer(settings.slot_buffer_min);
   }, [settings]);
 
@@ -102,7 +102,7 @@ export default function Onboarding() {
     (async () => {
       const { data } = await supabase
         .from('procedures')
-        .select('id,name,duration_min,default_price,category')
+        .select('id,name,duration,default_price,category')
         .order('created_at', { ascending: true });
       setProcs((data ?? []) as ProcedureDraft[]);
     })();
@@ -135,7 +135,7 @@ export default function Onboarding() {
     setSaving(true);
     const { error } = await upsert({
       working_hours: wh as unknown as never,
-      slot_duration_min: slotDuration,
+      slot_duration: slotDuration,
       slot_buffer_min: slotBuffer,
     });
     setSaving(false);
@@ -150,7 +150,7 @@ export default function Onboarding() {
         .from('procedures')
         .update({
           name: p.name,
-          duration_min: p.duration_min,
+          duration: p.duration,
           default_price: p.default_price,
           category: p.category ?? null,
         })
@@ -161,7 +161,7 @@ export default function Onboarding() {
         .from('procedures')
         .insert({
           name: p.name,
-          duration_min: p.duration_min,
+          duration: p.duration,
           default_price: p.default_price,
           category: p.category ?? null,
         })
@@ -182,7 +182,7 @@ export default function Onboarding() {
   }
 
   function addProcedureRow() {
-    setProcs((p) => [...p, { name: '', duration_min: 60, default_price: 0, category: '' }]);
+    setProcs((p) => [...p, { name: '', duration: 60, default_price: 0, category: '' }]);
   }
 
   function loadCatalog() {
@@ -303,7 +303,7 @@ export default function Onboarding() {
                 </div>
                 <div className="col-span-4 md:col-span-2 grid gap-1">
                   <Label className="text-xs">Duração (min)</Label>
-                  <Input type="number" value={p.duration_min} onChange={(e) => setProcs((prev) => prev.map((it, idx) => idx === i ? { ...it, duration_min: Number(e.target.value) } : it))} />
+                  <Input type="number" value={p.duration} onChange={(e) => setProcs((prev) => prev.map((it, idx) => idx === i ? { ...it, duration: Number(e.target.value) } : it))} />
                 </div>
                 <div className="col-span-4 md:col-span-2 grid gap-1">
                   <Label className="text-xs">Preço (R$)</Label>
