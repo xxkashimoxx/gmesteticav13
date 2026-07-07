@@ -95,6 +95,7 @@ export default function Today() {
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [waState, setWaState] = useState<{ apt: Appointment; initialKind: WhatsAppTemplateKind } | null>(null);
 
   const isToday = startOfDay(new Date()).getTime() === day.getTime();
 
@@ -161,24 +162,43 @@ export default function Today() {
     load();
   }
 
-  function openWhatsApp(apt: Appointment, kind: 'confirmation' | 'reminder_24h' | 'reminder_2h') {
-    const url = buildWhatsAppUrl(kind, {
-      patient_name: apt.patient_name,
-      patient_phone: apt.patient_phone,
-      procedure_name: apt.procedure_name,
-      scheduled_at: apt.scheduled_at,
-    });
-    if (!url) return toast.error('Paciente sem telefone cadastrado');
-    window.open(url, '_blank', 'noopener');
+  function openWhatsApp(apt: Appointment, kind: WhatsAppTemplateKind) {
+    if (!apt.patient_phone) return toast.error('Paciente sem telefone cadastrado');
+    setWaState({ apt, initialKind: kind });
+  }
+
+  async function stampSent(aptId: string, kind: string | undefined) {
+    if (!kind) return;
     const stamp = new Date().toISOString();
     const patch: Database['public']['Tables']['appointments']['Update'] =
       kind === 'confirmation'
         ? { confirmation_sent_at: stamp }
         : kind === 'reminder_24h'
-        ? { reminder_24h_sent_at: stamp }
-        : { reminder_2h_sent_at: stamp };
-    supabase.from('appointments').update(patch).eq('id', apt.id).then(() => load());
+          ? { reminder_24h_sent_at: stamp }
+          : kind === 'reminder_2h'
+            ? { reminder_2h_sent_at: stamp }
+            : {};
+    if (Object.keys(patch).length === 0) return;
+    await supabase.from('appointments').update(patch).eq('id', aptId);
+    load();
   }
+
+  function buildTemplates(apt: Appointment): WhatsAppTemplate[] {
+    const like = {
+      patient_name: apt.patient_name,
+      patient_phone: apt.patient_phone,
+      procedure_name: apt.procedure_name,
+      scheduled_at: apt.scheduled_at,
+    };
+    const kinds: WhatsAppTemplateKind[] = ['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'];
+    return kinds.map((k) => ({
+      kind: k,
+      label: TEMPLATE_LABELS[k],
+      message: buildMessage(k, like),
+    }));
+  }
+  // silence unused import warning
+  void buildWhatsAppUrl;
 
   const dayLabel = format(day, "EEEE, dd 'de' MMMM", { locale: ptBR });
 
