@@ -86,6 +86,10 @@ export default function Auth() {
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-primary p-4">
+      <PageMeta
+        title="Entrar — GM Estética Avançada"
+        description="Acesso restrito à equipe da clínica GM Estética Avançada e aos gestores de tráfego autorizados."
+      />
       <Card className="w-full max-w-md shadow-elevated border-0">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center shadow-card">

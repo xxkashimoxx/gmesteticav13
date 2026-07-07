@@ -41,6 +41,10 @@ export default function LeadCapture() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-secondary to-background flex items-center justify-center p-4">
+      <PageMeta
+        title="Agendar atendimento — GM Estética Avançada"
+        description="Preencha o formulário para ser atendida pela Dra. Goreti na GM Estética Avançada — harmonização facial e cuidados estéticos."
+      />
       <Card className="w-full max-w-lg shadow-elevated border-0">
         <CardHeader className="text-center space-y-2">
           <div className="w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center mx-auto">
