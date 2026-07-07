@@ -78,7 +78,6 @@ interface ProcedureOption {
   id: string;
   name: string;
   default_price: number | null;
-  duration_minutes: number | null;
 }
 
 const STAGES: Stage[] = ['novo', 'contato', 'qualificado', 'agendamento', 'convertido', 'perdido'];
@@ -174,7 +173,7 @@ export default function Leads() {
         .from('appointments')
         .select('*', { count: 'exact', head: true })
         .gte('scheduled_at', startOfWeek().toISOString()),
-      supabase.from('procedures').select('id, name, default_price, duration_minutes').order('name'),
+      supabase.from('procedures').select('id, name, default_price').order('name'),
     ]);
     if (error) toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
     setLeads((ldata ?? []) as Lead[]);
