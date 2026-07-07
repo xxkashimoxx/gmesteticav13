@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Today from "./pages/Today";
 import Patients from "./pages/Patients";
+import PatientDetail from "./pages/PatientDetail";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
 import Settings from "./pages/Settings";
