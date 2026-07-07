@@ -46,17 +46,17 @@ const STEPS = [
 type ProcedureDraft = {
   id?: string;
   name: string;
-  duration_min: number;
+  duration: string;
   default_price: number;
   category?: string | null;
 };
 
 const DEFAULT_CATALOG: ProcedureDraft[] = [
-  { name: 'Botox (Toxina Botulínica)', duration_min: 45, default_price: 900, category: 'harmonização' },
-  { name: 'Preenchimento labial', duration_min: 60, default_price: 1500, category: 'harmonização' },
-  { name: 'Limpeza de pele profunda', duration_min: 60, default_price: 250, category: 'facial' },
-  { name: 'Peeling químico', duration_min: 45, default_price: 400, category: 'facial' },
-  { name: 'Microagulhamento', duration_min: 60, default_price: 500, category: 'facial' },
+  { name: 'Botox (Toxina Botulínica)', duration: '45 min', default_price: 900, category: 'harmonização' },
+  { name: 'Preenchimento labial', duration: '60 min', default_price: 1500, category: 'harmonização' },
+  { name: 'Limpeza de pele profunda', duration: '60 min', default_price: 250, category: 'facial' },
+  { name: 'Peeling químico', duration: '45 min', default_price: 400, category: 'facial' },
+  { name: 'Microagulhamento', duration: '60 min', default_price: 500, category: 'facial' },
 ];
 
 export default function Onboarding() {
