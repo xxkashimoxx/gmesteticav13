@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Syringe,
   LogOut,
+  Sun,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
