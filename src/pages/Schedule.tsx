@@ -439,6 +439,7 @@ function AppointmentDialog({
   const [status, setStatus] = useState(appointment?.status || 'scheduled');
   const [notes, setNotes] = useState(appointment?.notes || '');
   const [saving, setSaving] = useState(false);
+  const [composerKind, setComposerKind] = useState<WhatsAppTemplateKind | null>(null);
 
   async function save() {
     if (!patientName.trim() || !scheduledAt || !procedureId) {
@@ -631,7 +632,7 @@ function AppointmentDialog({
           {isEdit && (
             <div className="pt-2 border-t space-y-2">
               <div className="text-xs font-medium text-muted-foreground">
-                Enviar WhatsApp manualmente
+                Enviar WhatsApp com prévia + sugestões de IA
               </div>
               <div className="flex flex-wrap gap-2">
                 {(['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'] as WhatsAppTemplateKind[]).map(
@@ -641,7 +642,7 @@ function AppointmentDialog({
                       type="button"
                       size="sm"
                       variant="outline"
-                      onClick={() => fireWhatsApp(k, previewApt)}
+                      onClick={() => setComposerKind(k)}
                     >
                       <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
                       {TEMPLATE_LABELS[k]}
@@ -661,6 +662,21 @@ function AppointmentDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {isEdit && appointment && composerKind && (
+        <WhatsAppComposer
+          open={!!composerKind}
+          onOpenChange={(o) => !o && setComposerKind(null)}
+          phone={appointment.patient_phone}
+          patientName={appointment.patient_name}
+          appointmentId={appointment.id}
+          templates={(['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'] as WhatsAppTemplateKind[]).map((k) => ({
+            kind: k,
+            label: TEMPLATE_LABELS[k],
+            message: buildMessage(k, previewApt),
+          }))}
+          initialTemplateKind={composerKind}
+        />
+      )}
     </Dialog>
   );
 }
