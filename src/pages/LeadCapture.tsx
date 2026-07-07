@@ -89,6 +89,6 @@ export default function LeadCapture() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
