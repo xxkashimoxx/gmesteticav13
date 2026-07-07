@@ -104,7 +104,11 @@ export default function Onboarding() {
         .from('procedures')
         .select('id,name,duration,default_price,category')
         .order('created_at', { ascending: true });
-      setProcs((data ?? []) as ProcedureDraft[]);
+      setProcs(((data ?? []) as unknown as ProcedureDraft[]).map((p) => ({
+        ...p,
+        default_price: Number(p.default_price ?? 0),
+        duration: p.duration ?? '',
+      })));
     })();
   }, []);
 
