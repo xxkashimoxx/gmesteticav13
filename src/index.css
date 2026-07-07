@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide the Lovable badge on published deployments */
+#lovable-badge,
+a[href*="lovable.dev"][href*="?utm"],
+a[aria-label*="Lovable" i],
+a[aria-label*="Edit with" i],
+[id*="lovable-badge" i],
+[class*="lovable-badge" i] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
