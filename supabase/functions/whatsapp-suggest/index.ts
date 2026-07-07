@@ -52,36 +52,62 @@ async function buildContext(supabase: any, body: Body): Promise<string> {
       if (lead.notes) lines.push(`Notas: ${lead.notes}`);
       lines.push(`Último contato: ${fmt(lead.last_contact_at)}`);
 
+      // Interações recentes (10 mais novas)
       const { data: interactions } = await supabase
         .from("lead_interactions")
         .select("channel, direction, message, created_at")
         .eq("lead_id", body.leadId)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(30);
+
       if (interactions?.length) {
-        lines.push("\nHISTÓRICO DE INTERAÇÕES (mais recente primeiro):");
+        // Última interação por canal (independente da direção)
+        const lastByChannel = new Map<string, any>();
+        // Última mensagem recebida (paciente falou por último)
+        let lastInbound: any = null;
+        let lastOutbound: any = null;
         for (const i of interactions) {
-          const dir =
-            i.direction === "in"
-              ? "← Recebida"
-              : i.direction === "out"
-                ? "→ Enviada"
-                : "· Nota";
+          if (!lastByChannel.has(i.channel)) lastByChannel.set(i.channel, i);
+          if (!lastInbound && i.direction === "in") lastInbound = i;
+          if (!lastOutbound && i.direction === "out") lastOutbound = i;
+        }
+
+        lines.push(`\nÚLTIMA INTERAÇÃO POR CANAL:`);
+        for (const [channel, i] of lastByChannel) {
+          const dir = i.direction === "in" ? "← Recebida" : i.direction === "out" ? "→ Enviada" : "· Nota";
+          lines.push(`- ${channel}: [${fmt(i.created_at)}] ${dir} — "${i.message}"`);
+        }
+
+        if (lastInbound) {
+          lines.push(
+            `\nÚLTIMA MENSAGEM RECEBIDA DO PACIENTE (${lastInbound.channel}, ${fmt(lastInbound.created_at)}):\n"${lastInbound.message}"`,
+          );
+        }
+        if (lastOutbound) {
+          lines.push(
+            `\nÚLTIMA MENSAGEM ENVIADA PELA CLÍNICA (${lastOutbound.channel}, ${fmt(lastOutbound.created_at)}):\n"${lastOutbound.message}"`,
+          );
+        }
+
+        lines.push("\nHISTÓRICO COMPLETO (últimas 10, mais recente primeiro):");
+        for (const i of interactions.slice(0, 10)) {
+          const dir = i.direction === "in" ? "← Recebida" : i.direction === "out" ? "→ Enviada" : "· Nota";
           lines.push(`- [${fmt(i.created_at)}] ${dir} (${i.channel}): ${i.message}`);
         }
       }
 
+      // Atendimentos passados/futuros
       const { data: appts } = await supabase
         .from("appointments")
-        .select("procedure_name, scheduled_at, status, value")
+        .select("procedure_name, scheduled_at, status, value, notes")
         .ilike("patient_name", lead.name)
         .order("scheduled_at", { ascending: false })
-        .limit(5);
+        .limit(6);
       if (appts?.length) {
-        lines.push("\nATENDIMENTOS:");
+        lines.push("\nATENDIMENTOS DO PACIENTE:");
         for (const a of appts) {
           lines.push(
-            `- ${fmt(a.scheduled_at)} · ${a.procedure_name ?? "—"} · ${a.status} · R$ ${a.value ?? 0}`,
+            `- ${fmt(a.scheduled_at)} · ${a.procedure_name ?? "—"} · ${a.status} · R$ ${a.value ?? 0}${a.notes ? ` · motivo/obs: ${a.notes}` : ""}`,
           );
         }
       }
@@ -97,12 +123,54 @@ async function buildContext(supabase: any, body: Body): Promise<string> {
     if (apt) {
       lines.push(`\nAGENDAMENTO EM FOCO:`);
       lines.push(`Paciente: ${apt.patient_name}`);
-      lines.push(`Procedimento: ${apt.procedure_name ?? "—"}`);
+      lines.push(`Procedimento (motivo da consulta): ${apt.procedure_name ?? "—"}`);
       lines.push(`Data: ${fmt(apt.scheduled_at)}`);
-      lines.push(`Status: ${apt.status}`);
-      if (apt.notes) lines.push(`Obs: ${apt.notes}`);
+      lines.push(`Status atual: ${apt.status}`);
+      if (apt.notes) lines.push(`Observações/motivo: ${apt.notes}`);
+
+      // Detalhes do procedimento (categoria, duração, descrição)
+      if (apt.procedure_id) {
+        const { data: proc } = await supabase
+          .from("procedures")
+          .select("name, category, description, duration_minutes, default_price")
+          .eq("id", apt.procedure_id)
+          .maybeSingle();
+        if (proc) {
+          lines.push(
+            `Procedimento detalhado: ${proc.name}${proc.category ? ` (${proc.category})` : ""}${proc.duration_minutes ? ` · ${proc.duration_minutes}min` : ""}${proc.default_price ? ` · R$ ${proc.default_price}` : ""}`,
+          );
+          if (proc.description) lines.push(`Descrição: ${proc.description}`);
+        }
+      }
+
+      // Notas clínicas anteriores desse paciente (motivo/evolução)
+      const { data: pastAppts } = await supabase
+        .from("appointments")
+        .select("id, procedure_name, scheduled_at, status")
+        .ilike("patient_name", apt.patient_name)
+        .neq("id", apt.id)
+        .order("scheduled_at", { ascending: false })
+        .limit(4);
+      if (pastAppts?.length) {
+        lines.push("\nATENDIMENTOS ANTERIORES DESSE PACIENTE:");
+        for (const p of pastAppts) {
+          lines.push(`- ${fmt(p.scheduled_at)} · ${p.procedure_name ?? "—"} · ${p.status}`);
+        }
+        const ids = pastAppts.map((p: any) => p.id);
+        const { data: notes } = await supabase
+          .from("clinical_notes")
+          .select("appointment_id, note, created_at")
+          .in("appointment_id", ids)
+          .order("created_at", { ascending: false })
+          .limit(4);
+        if (notes?.length) {
+          lines.push("\nNOTAS CLÍNICAS RECENTES:");
+          for (const n of notes) lines.push(`- [${fmt(n.created_at)}] ${n.note}`);
+        }
+      }
     }
   }
+
 
   if (body.lastMessage) {
     lines.push(`\nÚLTIMA MENSAGEM DO PACIENTE:\n"${body.lastMessage}"`);
