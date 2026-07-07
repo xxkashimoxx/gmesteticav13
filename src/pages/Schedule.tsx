@@ -101,6 +101,8 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [creating, setCreating] = useState(false);
+  const [waState, setWaState] = useState<{ apt: Appointment; kind: WhatsAppTemplateKind } | null>(null);
+
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -165,11 +167,40 @@ export default function Schedule() {
     );
   }
 
-  async function sendReminder(apt: Appointment, kind: WhatsAppTemplateKind) {
-    if (!fireWhatsApp(kind, apt)) return;
-    const field = kind === 'reminder_24h' ? 'reminder_24h_sent_at' : 'reminder_2h_sent_at';
-    await markSent(apt.id, field);
+  function sendReminder(apt: Appointment, kind: WhatsAppTemplateKind) {
+    if (!apt.patient_phone) {
+      toast({ title: 'Sem número de WhatsApp', description: 'Cadastre o telefone da paciente.', variant: 'destructive' });
+      return;
+    }
+    setWaState({ apt, kind });
   }
+
+  async function onReminderSent(apt: Appointment, kind: string | undefined) {
+    if (!kind) return;
+    const field = kind === 'reminder_24h'
+      ? 'reminder_24h_sent_at'
+      : kind === 'reminder_2h'
+        ? 'reminder_2h_sent_at'
+        : kind === 'confirmation'
+          ? 'confirmation_sent_at'
+          : kind === 'reschedule'
+            ? 'reschedule_notice_sent_at'
+            : null;
+    if (field) await markSent(apt.id, field as keyof Appointment);
+  }
+
+  function buildAptTemplates(apt: Appointment): WhatsAppTemplate[] {
+    const like: AppointmentLike = {
+      patient_name: apt.patient_name,
+      patient_phone: apt.patient_phone,
+      procedure_name: apt.procedure_name,
+      scheduled_at: apt.scheduled_at,
+      previous_scheduled_at: apt.previous_scheduled_at ?? null,
+    };
+    const kinds: WhatsAppTemplateKind[] = ['confirmation', 'reminder_24h', 'reminder_2h', 'reschedule', 'cancellation'];
+    return kinds.map((k) => ({ kind: k, label: TEMPLATE_LABELS[k], message: buildMessage(k, like) }));
+  }
+  void buildWhatsAppUrl;
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
