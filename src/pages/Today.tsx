@@ -389,6 +389,28 @@ export default function Today() {
           </CardContent>
         </Card>
       </div>
+
+      {waState && (
+        <WhatsAppComposer
+          open={!!waState}
+          onOpenChange={(o) => !o && setWaState(null)}
+          phone={waState.apt.patient_phone}
+          patientName={waState.apt.patient_name}
+          appointmentId={waState.apt.id}
+          templates={buildTemplates(waState.apt)}
+          initialTemplateKind={waState.initialKind}
+          defaultIntent={
+            waState.initialKind === 'confirmation'
+              ? 'Confirmar agendamento e reduzir faltas'
+              : waState.initialKind === 'reminder_24h'
+                ? 'Lembrar do atendimento 24h antes'
+                : waState.initialKind === 'reminder_2h'
+                  ? 'Lembrete final 2h antes do horário'
+                  : 'Comunicar mudança de agendamento'
+          }
+          onSend={(kind) => stampSent(waState.apt.id, kind)}
+        />
+      )}
     </div>
   );
 }
