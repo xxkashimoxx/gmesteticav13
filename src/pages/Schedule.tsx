@@ -34,11 +34,13 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import {
+  buildMessage,
   buildWhatsAppUrl,
   TEMPLATE_LABELS,
   type WhatsAppTemplateKind,
   type AppointmentLike,
 } from '@/lib/whatsapp';
+import { WhatsAppComposer, type WhatsAppTemplate } from '@/components/WhatsAppComposer';
 import { brl } from '@/lib/format';
 
 type Appointment = {
