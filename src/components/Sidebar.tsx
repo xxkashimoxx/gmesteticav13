@@ -81,7 +81,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const { role, user, signOut } = useAuth();
   const items = visibleNav(role);
-  const roleLabel = role === 'admin' ? 'Administradora' : role === 'traffic_manager' ? 'Gestor de tráfego' : '—';
+  const roleLabel = role === 'admin' ? 'Administradora' : role === 'staff' ? 'Recepção' : role === 'traffic_manager' ? 'Gestor de tráfego' : '—';
 
   return (
     <div className="flex flex-col h-full bg-sidebar">
