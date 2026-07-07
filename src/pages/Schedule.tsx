@@ -390,6 +390,30 @@ export default function Schedule() {
           onSaved={load}
         />
       )}
+
+      {waState && (
+        <WhatsAppComposer
+          open={!!waState}
+          onOpenChange={(o) => !o && setWaState(null)}
+          phone={waState.apt.patient_phone}
+          patientName={waState.apt.patient_name}
+          appointmentId={waState.apt.id}
+          templates={buildAptTemplates(waState.apt)}
+          initialTemplateKind={waState.kind}
+          defaultIntent={
+            waState.kind === 'confirmation'
+              ? 'Confirmar agendamento'
+              : waState.kind === 'reminder_24h'
+                ? 'Lembrete 24h antes'
+                : waState.kind === 'reminder_2h'
+                  ? 'Lembrete 2h antes'
+                  : waState.kind === 'reschedule'
+                    ? 'Avisar remarcação'
+                    : 'Avisar cancelamento'
+          }
+          onSend={(kind) => onReminderSent(waState.apt, kind)}
+        />
+      )}
     </div>
   );
 }
