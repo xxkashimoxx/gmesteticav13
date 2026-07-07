@@ -170,13 +170,13 @@ export default function Today() {
     if (!url) return toast.error('Paciente sem telefone cadastrado');
     window.open(url, '_blank', 'noopener');
     const stamp = new Date().toISOString();
-    const field =
+    const patch: Database['public']['Tables']['appointments']['Update'] =
       kind === 'confirmation'
-        ? 'confirmation_sent_at'
+        ? { confirmation_sent_at: stamp }
         : kind === 'reminder_24h'
-        ? 'reminder_24h_sent_at'
-        : 'reminder_2h_sent_at';
-    supabase.from('appointments').update({ [field]: stamp }).eq('id', apt.id).then(() => load());
+        ? { reminder_24h_sent_at: stamp }
+        : { reminder_2h_sent_at: stamp };
+    supabase.from('appointments').update(patch).eq('id', apt.id).then(() => load());
   }
 
   const dayLabel = format(day, "EEEE, dd 'de' MMMM", { locale: ptBR });
