@@ -61,12 +61,15 @@ export type Database = {
       }
       appointments: {
         Row: {
+          checked_in_at: string | null
           confirmation_sent_at: string | null
           confirmation_status: string
           created_at: string
+          finished_at: string | null
           id: string
           lead_id: string | null
           notes: string | null
+          paid_at: string | null
           patient_name: string
           patient_phone: string | null
           previous_scheduled_at: string | null
@@ -77,17 +80,21 @@ export type Database = {
           reminder_sent_at: string | null
           reschedule_notice_sent_at: string | null
           scheduled_at: string
+          started_at: string | null
           status: string
           updated_at: string
           value: number
         }
         Insert: {
+          checked_in_at?: string | null
           confirmation_sent_at?: string | null
           confirmation_status?: string
           created_at?: string
+          finished_at?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
+          paid_at?: string | null
           patient_name: string
           patient_phone?: string | null
           previous_scheduled_at?: string | null
@@ -98,17 +105,21 @@ export type Database = {
           reminder_sent_at?: string | null
           reschedule_notice_sent_at?: string | null
           scheduled_at: string
+          started_at?: string | null
           status?: string
           updated_at?: string
           value?: number
         }
         Update: {
+          checked_in_at?: string | null
           confirmation_sent_at?: string | null
           confirmation_status?: string
           created_at?: string
+          finished_at?: string | null
           id?: string
           lead_id?: string | null
           notes?: string | null
+          paid_at?: string | null
           patient_name?: string
           patient_phone?: string | null
           previous_scheduled_at?: string | null
@@ -119,6 +130,7 @@ export type Database = {
           reminder_sent_at?: string | null
           reschedule_notice_sent_at?: string | null
           scheduled_at?: string
+          started_at?: string | null
           status?: string
           updated_at?: string
           value?: number
@@ -136,6 +148,105 @@ export type Database = {
             columns: ["procedure_id"]
             isOneToOne: false
             referencedRelation: "procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_settings: {
+        Row: {
+          address: string
+          clinic_name: string
+          created_at: string
+          id: string
+          onboarding_completed: boolean
+          owner_id: string
+          phone: string
+          slot_buffer_min: number
+          slot_duration_min: number
+          updated_at: string
+          wa_templates: Json
+          whatsapp_number: string
+          working_hours: Json
+        }
+        Insert: {
+          address?: string
+          clinic_name?: string
+          created_at?: string
+          id?: string
+          onboarding_completed?: boolean
+          owner_id: string
+          phone?: string
+          slot_buffer_min?: number
+          slot_duration_min?: number
+          updated_at?: string
+          wa_templates?: Json
+          whatsapp_number?: string
+          working_hours?: Json
+        }
+        Update: {
+          address?: string
+          clinic_name?: string
+          created_at?: string
+          id?: string
+          onboarding_completed?: boolean
+          owner_id?: string
+          phone?: string
+          slot_buffer_min?: number
+          slot_duration_min?: number
+          updated_at?: string
+          wa_templates?: Json
+          whatsapp_number?: string
+          working_hours?: Json
+        }
+        Relationships: []
+      }
+      clinical_notes: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          note: string
+          products_used: Json
+          professional: string | null
+          updated_at: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          note?: string
+          products_used?: Json
+          professional?: string | null
+          updated_at?: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          note?: string
+          products_used?: Json
+          professional?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -194,6 +305,7 @@ export type Database = {
           score: number
           source: string
           stage: string
+          tags: string[]
           temperature: string
           updated_at: string
         }
@@ -212,6 +324,7 @@ export type Database = {
           score?: number
           source?: string
           stage?: string
+          tags?: string[]
           temperature?: string
           updated_at?: string
         }
@@ -230,6 +343,7 @@ export type Database = {
           score?: number
           source?: string
           stage?: string
+          tags?: string[]
           temperature?: string
           updated_at?: string
         }
@@ -239,6 +353,95 @@ export type Database = {
             columns: ["procedure_id"]
             isOneToOne: false
             referencedRelation: "procedures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_anamnesis: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: Json
+          id: string
+          lead_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          lead_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          lead_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_anamnesis_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_photos: {
+        Row: {
+          appointment_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          lead_id: string
+          session_label: string | null
+          storage_path: string
+          taken_at: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          lead_id: string
+          session_label?: string | null
+          storage_path: string
+          taken_at?: string
+        }
+        Update: {
+          appointment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          lead_id?: string
+          session_label?: string | null
+          storage_path?: string
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_photos_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_photos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -393,6 +596,23 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "traffic_manager" | "staff"
+      appointment_status:
+        | "scheduled"
+        | "confirmed"
+        | "arrived"
+        | "in_progress"
+        | "completed"
+        | "paid"
+        | "no_show"
+        | "cancelled"
+      lead_stage:
+        | "new"
+        | "contacted"
+        | "interested"
+        | "evaluation_scheduled"
+        | "attended"
+        | "won"
+        | "lost"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -521,6 +741,25 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "traffic_manager", "staff"],
+      appointment_status: [
+        "scheduled",
+        "confirmed",
+        "arrived",
+        "in_progress",
+        "completed",
+        "paid",
+        "no_show",
+        "cancelled",
+      ],
+      lead_stage: [
+        "new",
+        "contacted",
+        "interested",
+        "evaluation_scheduled",
+        "attended",
+        "won",
+        "lost",
+      ],
     },
   },
 } as const
