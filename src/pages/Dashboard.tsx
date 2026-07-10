@@ -82,7 +82,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard
           title="Conversões na semana"
           value={weekConversions.toString()}
@@ -105,7 +105,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard title="Total de Leads" value={leads.length.toString()} icon={Users} />
         <StatCard title="Leads Quentes" value={hotLeads.toString()} icon={Flame} />
         <StatCard
