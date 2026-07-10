@@ -132,15 +132,15 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground text-center py-6">Nenhum agendamento futuro.</p>
           ) : (
             upcoming.map((a) => (
-              <div key={a.id} className="flex items-center justify-between p-3 bg-background rounded-lg">
-                <div>
-                  <p className="font-medium">{a.patient_name}</p>
-                  <p className="text-sm text-muted-foreground">{a.procedure_name ?? '—'}</p>
+              <div key={a.id} className="flex items-center justify-between p-3 bg-background rounded-lg gap-3 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{a.patient_name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{a.procedure_name ?? '—'}</p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(a.scheduled_at).toLocaleString('pt-BR')}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <Badge variant="secondary" className="mb-1">Agendado</Badge>
                   {Number(a.value) > 0 && (
                     <p className="text-sm font-medium text-primary">{brl(Number(a.value))}</p>
