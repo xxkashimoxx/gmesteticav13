@@ -68,9 +68,9 @@ const Index = () => {
       <PageMeta title={meta.title} description={meta.description} />
       <GlobalSearch />
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 w-full">
+      <div className="flex-1 flex flex-col min-w-0 w-full lg:pl-4">
         <MobileHeader />
-        <main className="flex-1 overflow-auto min-w-0 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-auto min-w-0 pb-20 lg:pb-0 lg:pt-2 lg:pr-4">
           <Outlet />
         </main>
         <MobileBottomNav />
