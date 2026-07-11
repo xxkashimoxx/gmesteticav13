@@ -69,7 +69,7 @@ export default function Dashboard() {
     .slice(0, 5);
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="p-4 md:p-6 lg:px-8 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
         <div className="text-xs sm:text-sm text-muted-foreground">
