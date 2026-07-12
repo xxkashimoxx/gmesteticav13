@@ -54,14 +54,8 @@ const Index = () => {
   const meta = ROUTE_META[metaKey] ?? ROUTE_META['/'];
 
 
-  useEffect(() => {
-    if (loading) return;
-    if (role !== 'admin') return;
-    if (pathname.startsWith('/onboarding')) return;
-    if (!settings || !settings.onboarding_completed) {
-      navigate('/onboarding', { replace: true });
-    }
-  }, [loading, role, settings, pathname, navigate]);
+  // Onboarding redirect disabled while auth is off.
+  useEffect(() => {}, [loading, role, settings, pathname, navigate]);
 
   return (
     <div className="flex min-h-screen bg-background">
