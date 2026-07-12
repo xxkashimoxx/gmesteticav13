@@ -22,65 +22,66 @@ All colors MUST be HSL.
 
 @layer base {
 :root {
-    /* Nude Aesthetic Palette — #F7D9BC */
-    --background: 28 60% 96%;
-    --foreground: 22 30% 18%;
+    /* Goreti Magalhães — Estética Avançada
+       Paleta: Azul Marinho, Petróleo, Grafite, Cinzas e Azuis suaves */
+    --background: 216 11% 95%;          /* Cinza Neve #F1F2F4 */
+    --foreground: 213 53% 11%;          /* Azul Marinho #0D1B2A */
 
-    --card: 28 70% 98%;
-    --card-foreground: 22 30% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 213 53% 11%;
 
-    --popover: 28 70% 98%;
-    --popover-foreground: 22 30% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 53% 11%;
 
-    /* Contrast Primary — Mocha profundo p/ contraste com o nude #F7D9BC */
-    --primary: 22 38% 24%;
-    --primary-foreground: 28 70% 96%;
-    --primary-glow: 22 32% 36%;
+    /* Primário: Azul Marinho — autoridade */
+    --primary: 213 53% 11%;
+    --primary-foreground: 216 11% 95%;
+    --primary-glow: 205 44% 21%;        /* Azul Petróleo */
 
-    /* Nude como tom de superfície/destaque suave */
-    --secondary: 28 79% 85%;
-    --secondary-foreground: 22 40% 20%;
+    /* Secundário: Azul Gelo — leveza */
+    --secondary: 213 25% 88%;
+    --secondary-foreground: 213 53% 15%;
 
-    --muted: 28 35% 90%;
-    --muted-foreground: 22 18% 38%;
+    --muted: 214 8% 88%;                /* Cinza Claro suave */
+    --muted-foreground: 217 12% 38%;
 
-    /* Acento rosé warm */
-    --accent: 18 55% 70%;
-    --accent-foreground: 22 40% 18%;
+    /* Acento: Azul Sereno — calma */
+    --accent: 210 20% 52%;
+    --accent-foreground: 216 11% 96%;
 
-    --destructive: 0 70% 45%;
+    --destructive: 0 62% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 55% 32%;
+    --success: 158 40% 32%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 32 90% 45%;
+    --warning: 32 70% 42%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 22 20% 80%;
-    --input: 22 20% 80%;
-    --ring: 22 38% 30%;
+    --border: 214 12% 82%;
+    --input: 214 12% 82%;
+    --ring: 205 44% 21%;
 
-    /* Gradientes — contraste mocha sobre fundo nude */
-    --gradient-primary: linear-gradient(135deg, hsl(22 38% 24%), hsl(22 32% 36%));
-    --gradient-card: linear-gradient(145deg, hsl(28 70% 98%), hsl(28 60% 94%));
-    --gradient-accent: linear-gradient(135deg, hsl(18 55% 72%), hsl(28 79% 88%));
+    /* Gradientes — profundidade em azul */
+    --gradient-primary: linear-gradient(135deg, hsl(213 53% 11%), hsl(205 44% 21%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(213 25% 96%));
+    --gradient-accent: linear-gradient(135deg, hsl(210 20% 52%), hsl(212 22% 72%));
 
-    --shadow-card: 0 4px 12px -2px hsl(22 30% 20% / 0.10), 0 2px 4px -1px hsl(22 30% 20% / 0.05);
-    --shadow-elevated: 0 12px 24px -6px hsl(22 30% 20% / 0.14), 0 4px 8px -2px hsl(22 30% 20% / 0.08);
+    --shadow-card: 0 4px 12px -2px hsl(213 40% 15% / 0.10), 0 2px 4px -1px hsl(213 40% 15% / 0.05);
+    --shadow-elevated: 0 12px 24px -6px hsl(213 40% 15% / 0.16), 0 4px 8px -2px hsl(213 40% 15% / 0.08);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.75rem;
 
-    --sidebar-background: 28 65% 97%;
-    --sidebar-foreground: 22 30% 22%;
-    --sidebar-primary: 22 38% 24%;
-    --sidebar-primary-foreground: 28 70% 96%;
-    --sidebar-accent: 28 50% 92%;
-    --sidebar-accent-foreground: 22 40% 20%;
-    --sidebar-border: 22 20% 82%;
-    --sidebar-ring: 22 38% 30%;
+    --sidebar-background: 213 53% 11%;      /* Azul Marinho */
+    --sidebar-foreground: 213 25% 88%;      /* Azul Gelo */
+    --sidebar-primary: 210 20% 52%;         /* Azul Sereno */
+    --sidebar-primary-foreground: 216 11% 96%;
+    --sidebar-accent: 205 44% 21%;          /* Azul Petróleo */
+    --sidebar-accent-foreground: 216 11% 96%;
+    --sidebar-border: 205 30% 18%;
+    --sidebar-ring: 210 20% 52%;
   }
 
   .dark {
