@@ -15,50 +15,15 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(() => fetchRole(s.user!.id), 0);
-      } else {
-        setRole(null);
-      }
-    });
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) fetchRole(data.session.user.id);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  async function fetchRole(userId: string) {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
-    setRole((data?.role as AppRole) ?? null);
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, session, role, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // Auth temporarily disabled — expose an admin-like context so gated UI keeps working.
+  const value: AuthContextValue = {
+    user: null,
+    session: null,
+    role: 'admin',
+    loading: false,
+    signOut: async () => {},
+  };
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
