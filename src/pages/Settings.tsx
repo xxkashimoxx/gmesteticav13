@@ -12,9 +12,11 @@ import {
   Palette,
   Database,
   Save,
+  MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { loadClinicWhatsApp, saveClinicWhatsApp } from '@/lib/clinicWhatsApp';
 
 const SETTINGS_KEY = 'gm.settings.v1';
 type SettingsShape = {
@@ -57,6 +59,7 @@ function applyTheme(theme: SettingsShape['theme']) {
 
 export default function Settings() {
   const [s, setS] = useState<SettingsShape>(DEFAULTS);
+  const [wa, setWa] = useState(loadClinicWhatsApp());
 
   useEffect(() => {
     try {
@@ -77,6 +80,8 @@ export default function Settings() {
 
   function handleSave() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    const savedWa = saveClinicWhatsApp(wa);
+    setWa(savedWa);
     toast.success('Configurações salvas');
   }
 
@@ -322,6 +327,50 @@ export default function Settings() {
               >
                 Alterar Senha
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card border-0 bg-gradient-card xl:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-primary" />
+              WhatsApp da Clínica
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Enquanto a API oficial não está conectada, o sistema abre o WhatsApp Web/App com
+              mensagens prontas (fluxo semi-automático via wa.me). Configure aqui o número e o
+              grupo interno usados no botão flutuante.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="wa-number">Número oficial (com DDD)</Label>
+                <Input
+                  id="wa-number"
+                  placeholder="Ex: (11) 98888-7777"
+                  value={wa.number}
+                  onChange={(e) => setWa({ ...wa, number: e.target.value })}
+                  className="bg-background"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Vira o destino do botão flutuante "Conversar com a clínica".
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wa-group">Link do grupo (Dra. + Tráfego)</Label>
+                <Input
+                  id="wa-group"
+                  placeholder="https://chat.whatsapp.com/..."
+                  value={wa.groupUrl}
+                  onChange={(e) => setWa({ ...wa, groupUrl: e.target.value })}
+                  className="bg-background"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Convite do grupo interno de comunicação da equipe.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
