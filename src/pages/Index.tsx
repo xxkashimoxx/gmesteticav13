@@ -70,6 +70,7 @@ const Index = () => {
         </main>
         <MobileBottomNav />
       </div>
+      <FloatingWhatsAppButton />
     </div>
   );
 };
