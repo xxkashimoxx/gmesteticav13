@@ -59,6 +59,7 @@ function applyTheme(theme: SettingsShape['theme']) {
 
 export default function Settings() {
   const [s, setS] = useState<SettingsShape>(DEFAULTS);
+  const [wa, setWa] = useState(loadClinicWhatsApp());
 
   useEffect(() => {
     try {
@@ -79,6 +80,8 @@ export default function Settings() {
 
   function handleSave() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+    const savedWa = saveClinicWhatsApp(wa);
+    setWa(savedWa);
     toast.success('Configurações salvas');
   }
 
