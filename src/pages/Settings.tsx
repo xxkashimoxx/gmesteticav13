@@ -12,9 +12,11 @@ import {
   Palette,
   Database,
   Save,
+  MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { loadClinicWhatsApp, saveClinicWhatsApp } from '@/lib/clinicWhatsApp';
 
 const SETTINGS_KEY = 'gm.settings.v1';
 type SettingsShape = {
