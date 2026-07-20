@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "sdk_version": "0.23.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "gm-estetica-mcp",
+      "version": "0.1.0",
+      "title": "GM Estética Avançada"
+    },
+    "tools": [
+      {
+        "name": "list_procedures",
+        "title": "List procedures",
+        "description": "List aesthetic procedures offered by the clinic (name, category, default price, description).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "includeArchived": {
+              "description": "Include archived procedures. Defaults to false.",
+              "type": "boolean"
+            },
+            "limit": {
+              "description": "Max rows. Default 100.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_upcoming_appointments",
+        "title": "List upcoming appointments",
+        "description": "List scheduled appointments starting from now, ordered by date. Returns patient name, procedure, scheduled time, status and value.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "days": {
+              "description": "Look-ahead window in days. Default 14.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90
+            },
+            "limit": {
+              "description": "Max rows. Default 50.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_leads",
+        "title": "List leads",
+        "description": "List leads in the clinic CRM, optionally filtered by temperature (hot/warm/cold) or stage.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "temperature": {
+              "type": "string",
+              "enum": [
+                "hot",
+                "warm",
+                "cold"
+              ]
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "novo",
+                "contato",
+                "qualificado",
+                "agendamento",
+                "convertido",
+                "perdido"
+              ]
+            },
+            "limit": {
+              "description": "Max rows. Default 50.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_lead",
+        "title": "Create lead",
+        "description": "Create a new lead in the clinic CRM. Use for capturing prospects from external channels (ads, referrals, chat).",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Lead full name."
+            },
+            "phone": {
+              "description": "Phone number in E.164 or local format.",
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "source": {
+              "description": "Channel origin (e.g. Meta Ads, Google, Indicação).",
+              "type": "string"
+            },
+            "procedureInterest": {
+              "description": "Procedure the lead is interested in.",
+              "type": "string"
+            },
+            "temperature": {
+              "type": "string",
+              "enum": [
+                "hot",
+                "warm",
+                "cold"
+              ]
+            },
+            "notes": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
