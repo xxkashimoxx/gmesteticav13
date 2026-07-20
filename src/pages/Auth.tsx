@@ -40,7 +40,7 @@ export default function Auth() {
       password: fd.get('password'),
     });
     if (!parsed.success) {
-      toast({ title: 'Dados inválidos', description: parsed.error.errors[0].message, variant: 'destructive' });
+      toast({ title: 'Dados inválidos', description: parsed.error.issues[0].message, variant: 'destructive' });
       return;
     }
     setBusy(true);
@@ -65,7 +65,7 @@ export default function Auth() {
       fullName: fd.get('fullName'),
     });
     if (!parsed.success) {
-      toast({ title: 'Dados inválidos', description: parsed.error.errors[0].message, variant: 'destructive' });
+      toast({ title: 'Dados inválidos', description: parsed.error.issues[0].message, variant: 'destructive' });
       return;
     }
     setBusy(true);
