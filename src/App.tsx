@@ -17,6 +17,7 @@ import Settings from "./pages/Settings";
 import Leads from "./pages/Leads";
 import Integrations from "./pages/Integrations";
 import Procedures from "./pages/Procedures";
+import AIAttendance from "./pages/AIAttendance";
 import Auth from "./pages/Auth";
 import LeadCapture from "./pages/LeadCapture";
 import Onboarding from "./pages/Onboarding";
@@ -38,22 +39,14 @@ const App = () => (
             <Route path="/captacao" element={<LeadCapture />} />
             <Route path="/blog/marketing-para-clinicas-de-estetica" element={<BlogMarketingClinicas />} />
             <Route path="/onboarding" element={<ProtectedRoute allow={["admin"]}><Onboarding /></ProtectedRoute>} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="hoje" element={<ProtectedRoute allow={["admin", "staff"]}><Today /></ProtectedRoute>} />
-              {/* Admin + staff */}
               <Route path="patients" element={<ProtectedRoute allow={["admin", "staff"]}><Patients /></ProtectedRoute>} />
               <Route path="patients/:id" element={<ProtectedRoute allow={["admin", "staff"]}><PatientDetail /></ProtectedRoute>} />
               <Route path="finance" element={<ProtectedRoute allow={["admin", "staff"]}><Finance /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute allow={["admin"]}><Settings /></ProtectedRoute>} />
-              {/* Shared with traffic managers */}
+              <Route path="ai-attendance" element={<ProtectedRoute allow={["admin", "staff"]}><AIAttendance /></ProtectedRoute>} />
               <Route path="schedule" element={<Schedule />} />
               <Route path="leads" element={<Leads />} />
               <Route path="integrations" element={<Integrations />} />
