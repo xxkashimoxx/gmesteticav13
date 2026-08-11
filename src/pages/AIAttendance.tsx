@@ -18,9 +18,20 @@ export default function AIAttendance() {
   useEffect(() => { void loadCount(); }, []);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
 
+  async function invokeAgent(body: Record<string, unknown>) {
+    const { data, error } = await supabase.functions.invoke('gm-ai-agent', { body });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+
   async function loadCount() {
-    const { count } = await supabase.from('ai_training_examples' as any).select('*', { count: 'exact', head: true });
-    setLearned(count || 0);
+    try {
+      const data = await invokeAgent({ action: 'count' });
+      setLearned(data?.count || 0);
+    } catch {
+      setLearned(0);
+    }
   }
 
   const send = async (e: FormEvent) => {
@@ -32,12 +43,14 @@ export default function AIAttendance() {
     setMessages(m => [...m, { id: `c-${now}`, role: 'client', text, createdAt: now }]);
     setInput(''); setError(''); setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('gm-ai-agent', { body: { message: text, history } });
-      if (error) throw error;
-      if (!data?.answer) throw new Error(data?.error || 'A IA não retornou resposta.');
+      const data = await invokeAgent({ action: 'chat', message: text, history });
+      if (!data?.answer) throw new Error('A IA não retornou resposta.');
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', text: data.answer, createdAt: Date.now() }]);
-    } catch (e: any) { setError(e?.message || 'Falha ao conversar com o agente.'); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      setError(e?.message || 'Falha ao conversar com o agente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const lastClientBefore = (index: number) => [...messages.slice(0, index)].reverse().find(m => m.role === 'client');
@@ -46,10 +59,16 @@ export default function AIAttendance() {
     const question = lastClientBefore(index)?.text;
     const answer = correction.trim();
     if (!question || !answer) return;
-    const { error } = await supabase.from('ai_training_examples' as any).insert({ question, answer, source: 'human_correction', approved: true });
-    if (error) { setError(error.message); return; }
-    setMessages(m => m.map(x => x.id === id ? { ...x, text: answer } : x));
-    setEditingId(null); setCorrection(''); await loadCount();
+    try {
+      setError('');
+      await invokeAgent({ action: 'train', question, answer });
+      setMessages(m => m.map(x => x.id === id ? { ...x, text: answer } : x));
+      setEditingId(null);
+      setCorrection('');
+      await loadCount();
+    } catch (e: any) {
+      setError(e?.message || 'Não foi possível salvar o treinamento.');
+    }
   }
 
   return <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-4">
