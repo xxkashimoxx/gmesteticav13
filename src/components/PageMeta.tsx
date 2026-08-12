@@ -9,7 +9,7 @@ interface PageMetaProps {
 export function PageMeta({ title, description }: PageMetaProps) {
   const { pathname } = useLocation();
   const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://gmesteticav13.lovable.app";
+    typeof window !== "undefined" ? window.location.origin : "https://www.gmestetica.bond";
   const canonical = `${origin}${pathname}`;
 
   const safeTitle = title.length > 60 ? title.slice(0, 57) + "…" : title;
