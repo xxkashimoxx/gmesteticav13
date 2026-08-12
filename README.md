@@ -1,75 +1,41 @@
-# Welcome to your Lovable project
+# Painel GM Estética
 
-## Project info
+Painel interno da Goreti Magalhães Estética Avançada: pacientes, agenda, procedimentos, financeiro, leads e atendimento com IA.
 
-**URL**: https://lovable.dev/projects/db2fdbae-77a1-4dc5-b1fe-f228448f6c8e
+## Rodar no computador
 
-## How can I edit this code?
+Pré-requisito: Node.js 20 ou superior.
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/db2fdbae-77a1-4dc5-b1fe-f228448f6c8e) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Para gerar os arquivos prontos para qualquer hospedagem estática:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+A pasta `dist` pode ser publicada na Vercel, Netlify, Cloudflare Pages, GitHub Pages (com ajuste de rota) ou em um servidor próprio.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push changes once you're done.
+## Configuração
 
-## What technologies are used for this project?
+Crie um arquivo `.env` a partir de `.env.example` e informe a URL e a chave pública do projeto Supabase.
 
-This project is built with:
+As Edge Functions ficam em `supabase/functions`. No painel do Supabase, configure:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `GEMINI_API_KEY` para a IA do atendimento e para sugestões de WhatsApp.
+- `ALLOWED_ORIGINS` com as URLs onde o painel será hospedado, separadas por vírgula. Exemplo: `https://painel.seudominio.com,https://www.gmestetica.bond`.
+- As chaves padrão do Supabase já são fornecidas ao ambiente das funções.
 
-## How can I deploy this project?
+Jamais coloque chaves privadas, `service_role` ou `GEMINI_API_KEY` no arquivo do frontend.
 
-Simply open [Lovable](https://lovable.dev/projects/db2fdbae-77a1-4dc5-b1fe-f228448f6c8e) and click on Share -> Publish.
+## Conteúdo do backup
 
-## Can I connect a custom domain to my Lovable project?
+- Código completo do painel React/Vite.
+- Migrações e funções do Supabase.
+- Versão atual do agente `gm-ai-agent`, com instruções de respostas curtas e sem repetição.
+- Referências visuais enviadas para a identidade da GM.
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-<!-- deploy-trigger: 2026-08-11 AI agent fix -->
+Este projeto é independente da hospedagem: pode ser publicado onde você preferir.
