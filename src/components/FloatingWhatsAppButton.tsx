@@ -92,6 +92,7 @@ export function FloatingWhatsAppButton() {
         </div>
       )}
       <Button
+        data-tour-id="whatsapp-shortcut"
         onClick={() => setOpen((v) => !v)}
         size="icon"
         className="w-14 h-14 rounded-full shadow-xl bg-[#25D366] hover:bg-[#1ebe57] text-white"
