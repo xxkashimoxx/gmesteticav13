@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Sidebar, MobileHeader, MobileBottomNav } from '@/components/Sidebar';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton';
+import { FirstRunTutorial } from '@/components/FirstRunTutorial';
 import { PageMeta } from '@/components/PageMeta';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -54,7 +55,6 @@ const Index = () => {
   const metaKey = pathname.startsWith('/patients/') ? '/patients' : pathname;
   const meta = ROUTE_META[metaKey] ?? ROUTE_META['/'];
 
-
   // Onboarding redirect disabled while auth is off.
   useEffect(() => {}, [loading, role, settings, pathname, navigate]);
 
@@ -71,6 +71,7 @@ const Index = () => {
         <MobileBottomNav />
       </div>
       <FloatingWhatsAppButton />
+      <FirstRunTutorial />
     </div>
   );
 };
