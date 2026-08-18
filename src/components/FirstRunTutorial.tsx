@@ -9,8 +9,12 @@ import {
   CircleHelp,
   CreditCard,
   Flame,
+  FormInput,
   MessageCircle,
+  MousePointerClick,
   Plug,
+  RotateCcw,
+  Search,
   Settings,
   Sparkles,
   Sun,
@@ -19,11 +23,14 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
-const COMPLETED_KEY = 'gm:tutorial:v1:completed';
-const STEP_KEY = 'gm:tutorial:v1:step';
+const COMPLETED_KEY = 'gm:tutorial:v2:completed';
+const STEP_KEY = 'gm:tutorial:v2:step';
 const START_EVENT = 'gm:start-tutorial';
+
+const PAGE_SELECTOR = 'main > div:first-child';
 
 type TutorialStep = {
   title: string;
@@ -31,187 +38,441 @@ type TutorialStep = {
   description: string;
   bullets?: string[];
   target?: string;
+  selector?: string;
+  path?: string;
+  pageName?: string;
   icon: LucideIcon;
+  exercise?: boolean;
 };
 
 const STEPS: TutorialStep[] = [
   {
     title: 'Bem-vinda ao Painel GM',
-    subtitle: 'Um passeio rápido, sem linguagem complicada',
+    subtitle: 'Você vai aprender olhando o sistema de verdade',
     description:
-      'Este tutorial vai mostrar, uma tela por vez, para que serve cada menu do sistema. Você não precisa decorar nada agora: a ideia é apenas saber onde procurar cada coisa.',
+      'Este tutorial não é só uma sequência de textos. A cada etapa o painel vai abrir a página correspondente e destacar a parte que está sendo explicada. Vá no seu ritmo.',
     bullets: [
-      'Use Próximo e Voltar no seu ritmo.',
-      'Se fechar antes do fim, o sistema guarda onde você parou.',
-      'Depois de concluir, o tutorial não abre sozinho novamente.',
+      'As páginas serão abertas automaticamente para você enxergar onde cada função fica.',
+      'Use “Voltar” se quiser rever alguma parte e “Mostrar novamente” para destacar o ponto outra vez.',
+      'Se fechar no meio, o sistema guarda onde você parou.',
+      'Depois de concluir, este tutorial não abre sozinho novamente neste aparelho.',
     ],
     icon: Sparkles,
   },
   {
     title: 'Hoje',
-    subtitle: 'O ponto de partida do dia',
+    subtitle: 'Sua primeira tela para começar o dia',
     description:
-      'Abra esta tela para ver o que precisa da sua atenção hoje. Ela foi pensada para você bater o olho e entender como está o dia da clínica.',
+      'A página Hoje serve para saber rapidamente o que está marcado e o que precisa da sua atenção naquele dia. Pense nela como a tela operacional do dia da clínica.',
     bullets: [
-      'Veja atendimentos e compromissos do dia.',
-      'Use para acompanhar confirmações e pendências mais imediatas.',
+      'No topo você pode mudar o dia, voltar para hoje ou abrir a agenda completa.',
+      'Os números mostram quantos atendimentos existem, quantos foram confirmados, concluídos e quanto está previsto/recebido.',
+      'Logo abaixo fica a linha do tempo dos atendimentos.',
     ],
-    target: 'hoje',
+    path: '/hoje',
+    pageName: 'Hoje',
+    selector: PAGE_SELECTOR,
     icon: Sun,
   },
   {
-    title: 'Dashboard',
-    subtitle: 'O resumo geral da clínica',
+    title: 'Resumo do dia',
+    subtitle: 'Esses cartões são para bater o olho',
     description:
-      'O Dashboard junta as informações mais importantes em uma única tela. Ele serve para acompanhar a situação da clínica sem precisar abrir cada área separadamente.',
+      'Aqui você não precisa preencher nada. Os cartões são um resumo automático do dia escolhido e ajudam a perceber rapidamente se há algo fora do esperado.',
     bullets: [
-      'Use para ter uma visão rápida de movimento, leads, agenda e resultados.',
-      'Normalmente você consulta esta tela; não precisa cadastrar informações nela.',
+      'Agendamentos: quantidade marcada para o dia.',
+      'Confirmados: quantos já confirmaram presença.',
+      'Concluídos: atendimentos já finalizados.',
+      'Recebido / Previsto: visão financeira daquele dia.',
     ],
-    target: 'dashboard',
+    path: '/hoje',
+    pageName: 'Hoje',
+    selector: 'main > div:first-child > :nth-child(2)',
     icon: BarChart3,
   },
   {
-    title: 'IA Atendimento',
-    subtitle: 'Onde você ensina a assistente da clínica',
+    title: 'Linha do tempo do dia',
+    subtitle: 'Aqui você acompanha cada atendimento',
     description:
-      'Nesta área você conversa com a IA como se fosse uma cliente real. Quando uma resposta não estiver do jeito que você quer, pode corrigir e ensinar a resposta ideal.',
+      'A linha do tempo organiza os atendimentos na ordem dos horários. É onde você acompanha o andamento: agendado, confirmado, chegou, em atendimento, concluído ou pago.',
     bullets: [
-      'Clique em “Corrigir e ensinar” quando a resposta não estiver boa.',
-      'As correções salvas entram na memória da assistente para respostas futuras.',
-      'Durante o treinamento, a resposta automática do WhatsApp permanece desligada.',
+      'Use os botões do atendimento para avançar o status conforme o dia acontece.',
+      'Os atalhos de WhatsApp servem para confirmação, lembrete ou contato com a paciente.',
+      'Se não houver atendimento no dia, a própria tela avisa.',
     ],
-    target: 'ai-attendance',
+    path: '/hoje',
+    pageName: 'Hoje',
+    selector: 'main > div:first-child > :nth-child(3)',
+    icon: Calendar,
+  },
+  {
+    title: 'Dashboard',
+    subtitle: 'A visão geral da clínica',
+    description:
+      'O Dashboard é para consulta. Ele junta os principais números da clínica para você entender rapidamente como estão agenda, leads e previsão de receita.',
+    bullets: [
+      'Você não precisa cadastrar nada aqui.',
+      'Use esta página para acompanhar desempenho e perceber o que merece atenção.',
+      'Os dados vêm automaticamente das outras áreas do painel.',
+    ],
+    path: '/',
+    pageName: 'Dashboard',
+    selector: PAGE_SELECTOR,
+    icon: BarChart3,
+  },
+  {
+    title: 'Indicadores do Dashboard',
+    subtitle: 'O que cada número quer dizer',
+    description:
+      'Esses indicadores transformam os cadastros e agendamentos em um resumo fácil de acompanhar.',
+    bullets: [
+      'Conversões na semana: pessoas que avançaram até fechar procedimento.',
+      'Taxa de agendamento: proporção de leads que chegaram ao agendamento.',
+      'Receita prevista: valores de agenda futura somados ao potencial dos leads.',
+      'Agendamentos hoje: quantidade de atendimentos marcados para o dia.',
+    ],
+    path: '/',
+    pageName: 'Dashboard',
+    selector: 'main > div:first-child > :nth-child(2)',
+    icon: BarChart3,
+  },
+  {
+    title: 'Próximos agendamentos',
+    subtitle: 'Uma prévia sem abrir a agenda',
+    description:
+      'No final do Dashboard você encontra os próximos atendimentos marcados. Serve como consulta rápida quando você não precisa abrir o calendário completo.',
+    bullets: [
+      'Mostra paciente, procedimento, data e horário.',
+      'Quando houver valor cadastrado, ele também aparece aqui.',
+    ],
+    path: '/',
+    pageName: 'Dashboard',
+    selector: 'main > div:first-child > :last-child',
+    icon: Calendar,
+  },
+  {
+    title: 'IA Atendimento',
+    subtitle: 'O laboratório da assistente da clínica',
+    description:
+      'Esta página existe para você testar a IA como se fosse uma cliente real. Durante o treinamento, você pode corrigir respostas até ela aprender o padrão de atendimento da clínica.',
+    bullets: [
+      'Escreva perguntas como uma cliente escreveria no WhatsApp.',
+      'A IA responde usando as instruções e a memória já ensinada.',
+      'A resposta automática no WhatsApp continua desligada enquanto estiver em treinamento.',
+    ],
+    path: '/ai-attendance',
+    pageName: 'IA Atendimento',
+    selector: PAGE_SELECTOR,
+    icon: Bot,
+  },
+  {
+    title: 'Corrigir e ensinar a IA',
+    subtitle: 'Este é o botão mais importante do treinamento',
+    description:
+      'Se uma resposta estiver genérica, errada ou diferente da forma como você atenderia, use “Corrigir e ensinar”. Escreva a resposta ideal e salve.',
+    bullets: [
+      'A correção entra na memória persistente da GM.',
+      'Perguntas iguais ou muito parecidas passam a priorizar o que foi ensinado.',
+      'Você pode repetir esse processo quantas vezes precisar durante o treinamento.',
+    ],
+    path: '/ai-attendance',
+    pageName: 'IA Atendimento',
+    selector: 'main section',
     icon: Bot,
   },
   {
     title: 'Leads',
-    subtitle: 'Pessoas interessadas que ainda precisam ser trabalhadas',
+    subtitle: 'Pessoas interessadas que ainda estão sendo trabalhadas',
     description:
-      'Lead é alguém que demonstrou interesse na clínica, pediu informação ou veio de uma campanha, mas ainda não necessariamente virou paciente ou agendamento.',
+      'Lead é alguém que pediu informação, veio de anúncio, indicação ou outro canal e ainda pode virar avaliação, paciente ou venda. Essa página evita que oportunidades se percam.',
     bullets: [
-      'Use para acompanhar quem pediu contato ou demonstrou interesse.',
-      'Ajuda a não esquecer pessoas que podem virar consultas ou procedimentos.',
+      'Novo Lead: cadastra um novo contato interessado.',
+      'Temperatura: quente, morno ou frio indica o nível de interesse.',
+      'Etapa: mostra em que ponto da conversa/venda aquela pessoa está.',
+      'Ticket estimado: valor potencial daquele atendimento.',
     ],
-    target: 'leads',
+    path: '/leads',
+    pageName: 'Leads',
+    selector: PAGE_SELECTOR,
+    icon: Flame,
+  },
+  {
+    title: 'Cadastrar um novo contato',
+    subtitle: 'É daqui que nasce um cadastro de atendimento',
+    description:
+      'O botão “Novo Lead” abre o formulário de cadastro. Para a rotina da clínica, ele também é o caminho mais simples para iniciar o cadastro de uma pessoa que poderá virar paciente.',
+    bullets: [
+      'Nome é obrigatório; telefone e e-mail ajudam no contato.',
+      'Origem informa de onde a pessoa veio: anúncio, indicação, Instagram etc.',
+      'Procedimento de interesse ajuda a equipe a saber o que ela procura.',
+      'Notas servem para registrar observações úteis da conversa.',
+    ],
+    path: '/leads',
+    pageName: 'Leads',
+    selector: 'main > div:first-child > :first-child',
+    icon: FormInput,
+  },
+  {
+    title: 'Indicadores dos Leads',
+    subtitle: 'O resumo comercial da captação',
+    description:
+      'Os cartões desta página resumem como está a entrada e o avanço dos contatos.',
+    bullets: [
+      'Total de Leads: quantidade de contatos cadastrados.',
+      'Conversões na semana: quem fechou procedimento.',
+      'Taxa de Agendamento: quantos avançaram até marcar avaliação.',
+      'Pipeline Estimado: soma do potencial financeiro dos leads.',
+    ],
+    path: '/leads',
+    pageName: 'Leads',
+    selector: 'main > div:first-child > :nth-child(2)',
+    icon: BarChart3,
+  },
+  {
+    title: 'Funil e temperatura',
+    subtitle: 'Duas maneiras de enxergar os contatos',
+    description:
+      'A página permite ver os leads por etapa do funil ou por temperatura. Você pode usar a visão que for mais fácil para entender quem precisa de atenção.',
+    bullets: [
+      'Funil por etapa: Novo → Em contato → Qualificado → Agendou → Converteu ou Perdido.',
+      'Por temperatura: separa Quentes, Mornos e Frios.',
+      'Nos cartões existem atalhos para WhatsApp, histórico, edição e agendamento.',
+    ],
+    path: '/leads',
+    pageName: 'Leads',
+    selector: 'main [role="tablist"]',
     icon: Flame,
   },
   {
     title: 'Procedimentos',
-    subtitle: 'O catálogo do que a clínica oferece',
+    subtitle: 'O catálogo oficial da clínica',
     description:
-      'Aqui ficam cadastrados os procedimentos da clínica. Pense nesta área como a lista oficial que o restante do sistema pode consultar.',
+      'Aqui ficam os procedimentos que o restante do sistema usa. É importante manter essa lista correta porque agenda, valores e outras áreas podem consultar essas informações.',
     bullets: [
-      'Cadastre ou ajuste nome, duração, categoria, descrição e valor de referência.',
-      'Mantenha os dados atualizados para a agenda e outras áreas usarem informações corretas.',
+      'Nome: como o procedimento aparece no sistema.',
+      'Duração: ajuda na organização de horários.',
+      'Categoria: facilita organização e leitura.',
+      'Valor padrão: referência usada em outras telas; pode ser ajustado conforme a realidade da clínica.',
+      'Descrição: resumo simples do procedimento.',
     ],
-    target: 'procedures',
+    path: '/procedures',
+    pageName: 'Procedimentos',
+    selector: PAGE_SELECTOR,
     icon: Syringe,
   },
   {
     title: 'Pacientes',
-    subtitle: 'Cadastro e histórico de quem já é atendido',
+    subtitle: 'Onde você procura quem já está na base',
     description:
-      'Nesta área você procura e acompanha pacientes. É onde ficam as informações relacionadas ao histórico de atendimento de cada pessoa.',
+      'Esta página reúne os contatos e mostra quem já possui histórico de atendimento. Use quando precisar localizar alguém, abrir a ficha ou consultar informações anteriores.',
     bullets: [
-      'Use para localizar um paciente e consultar seus dados.',
-      'O histórico ajuda a entender atendimentos e procedimentos já registrados.',
+      'A busca encontra por nome, e-mail ou telefone.',
+      'Os filtros ajudam a separar pacientes, leads e VIPs.',
+      'Cada cartão mostra contato, quantidade de atendimentos e próximo agendamento quando existir.',
+      '“Ver ficha” abre o histórico detalhado daquela pessoa.',
     ],
-    target: 'patients',
+    path: '/patients',
+    pageName: 'Pacientes',
+    selector: PAGE_SELECTOR,
     icon: Users,
   },
   {
-    title: 'Agenda',
-    subtitle: 'Onde os horários da clínica são organizados',
+    title: 'Cadastrar via Leads',
+    subtitle: 'Por que o cadastro começa em Leads',
     description:
-      'A Agenda é a área para controlar os horários. É nela que você consulta quando a clínica está ocupada ou livre e organiza os atendimentos.',
+      'No painel, uma pessoa normalmente entra primeiro como contato/lead. Depois, conforme ela agenda e é atendida, o sistema passa a tratá-la como paciente com histórico.',
     bullets: [
-      'Use para marcar e consultar atendimentos.',
-      'Também é a referência para remarcações e organização dos horários.',
+      'O botão “Cadastrar via Leads” leva você para o cadastro inicial.',
+      'Isso evita duplicar a mesma pessoa em áreas diferentes.',
+      'No exercício final você vai praticar exatamente esse fluxo.',
     ],
-    target: 'schedule',
+    path: '/patients',
+    pageName: 'Pacientes',
+    selector: 'main > div:first-child > :first-child',
+    icon: Users,
+  },
+  {
+    title: 'Busca de pacientes',
+    subtitle: 'A forma mais rápida de encontrar uma ficha',
+    description:
+      'Quando a base crescer, não role a tela procurando pessoa por pessoa. Use a busca e digite parte do nome, telefone ou e-mail.',
+    bullets: [
+      'Você não precisa digitar o nome completo.',
+      'Depois de encontrar, toque no cartão ou em “Ver ficha”.',
+    ],
+    path: '/patients',
+    pageName: 'Pacientes',
+    selector: 'main input[placeholder*="Buscar por nome"]',
+    icon: Search,
+  },
+  {
+    title: 'Agenda',
+    subtitle: 'O calendário completo da clínica',
+    description:
+      'A Agenda é onde você cria, consulta e altera os horários. É a tela principal quando a tarefa envolve data, hora ou disponibilidade.',
+    bullets: [
+      '“Novo Agendamento” abre o formulário para marcar um atendimento.',
+      'A navegação semanal permite voltar, ir para hoje ou avançar uma semana.',
+      'Cada dia mostra os atendimentos daquele período.',
+      'Agendamentos existentes podem ser editados quando necessário.',
+    ],
+    path: '/schedule',
+    pageName: 'Agenda',
+    selector: PAGE_SELECTOR,
+    icon: Calendar,
+  },
+  {
+    title: 'Novo Agendamento',
+    subtitle: 'Quando a paciente escolheu data e horário',
+    description:
+      'Use este botão para registrar o compromisso na agenda. Preencha os dados da paciente, procedimento, data/hora e demais informações solicitadas.',
+    bullets: [
+      'Confira o telefone antes de salvar para os lembretes de WhatsApp funcionarem corretamente.',
+      'Escolha o procedimento correto para manter o histórico organizado.',
+      'Revise data e horário antes de confirmar.',
+    ],
+    path: '/schedule',
+    pageName: 'Agenda',
+    selector: 'main > div:first-child > :first-child',
     icon: Calendar,
   },
   {
     title: 'Financeiro',
-    subtitle: 'Acompanhamento dos valores da clínica',
+    subtitle: 'A leitura dos valores registrados na clínica',
     description:
-      'Esta área organiza as informações financeiras que foram registradas no sistema. O objetivo é facilitar a leitura do que entrou e o acompanhamento dos resultados.',
+      'Use o Financeiro para acompanhar faturamento, recebimentos e resultados que foram registrados pelo sistema.',
     bullets: [
-      'Use para conferir faturamento e movimentações registradas.',
-      'Os relatórios ajudam a comparar períodos e acompanhar o desempenho financeiro.',
+      'Consulte os totais antes de analisar detalhes.',
+      'Use filtros/períodos disponíveis para comparar momentos diferentes.',
+      'Valores dependem do que foi corretamente registrado nos atendimentos e movimentações.',
+      'Evite alterar lançamentos sem conferir a origem do valor.',
     ],
-    target: 'finance',
+    path: '/finance',
+    pageName: 'Financeiro',
+    selector: PAGE_SELECTOR,
     icon: CreditCard,
   },
   {
     title: 'Integrações',
-    subtitle: 'Conexões do painel com outros serviços',
+    subtitle: 'Conexões com serviços externos',
     description:
-      'Integrações é a área usada para conectar o painel a serviços externos, como canais de atendimento e ferramentas de marketing.',
+      'Integrações é uma área mais eventual. Ela reúne conexões do painel com ferramentas como WhatsApp e serviços de marketing.',
     bullets: [
-      'Você não precisa mexer aqui no uso normal do dia a dia.',
-      'Altere uma integração somente quando houver necessidade de conectar ou ajustar algum serviço.',
+      'Você não precisa entrar aqui para o uso normal do dia a dia.',
+      'Só altere uma conexão quando houver uma necessidade específica.',
+      'Se alguma integração estiver funcionando, evite trocar chaves ou configurações sem necessidade.',
     ],
-    target: 'integrations',
+    path: '/integrations',
+    pageName: 'Integrações',
+    selector: PAGE_SELECTOR,
     icon: Plug,
   },
   {
     title: 'Configurações',
-    subtitle: 'Ajustes gerais e permanentes do sistema',
+    subtitle: 'Ajustes gerais da clínica e do painel',
     description:
-      'Configurações reúne dados e preferências que não costumam mudar toda hora. É a área certa para alterar informações gerais da clínica e ajustes do painel.',
+      'Configurações guarda informações que não mudam o tempo todo: dados gerais da clínica e preferências operacionais.',
     bullets: [
-      'Use quando precisar mudar algum dado geral ou preferência da clínica.',
-      'Se estiver em dúvida sobre uma opção, é melhor não alterar até confirmar para que ela serve.',
+      'Use para ajustar dados gerais quando realmente houver mudança.',
+      'Confira com atenção número de WhatsApp, horários e informações permanentes.',
+      'Se não souber para que serve uma opção técnica, deixe como está e confirme antes de alterar.',
     ],
-    target: 'settings',
+    path: '/settings',
+    pageName: 'Configurações',
+    selector: PAGE_SELECTOR,
     icon: Settings,
   },
   {
     title: 'Atalho do WhatsApp',
-    subtitle: 'Acesso rápido às opções de WhatsApp da clínica',
+    subtitle: 'O botão verde que acompanha você no painel',
     description:
-      'O botão verde que fica no canto da tela é um atalho. Ele pode abrir o WhatsApp Web, o contato configurado da clínica e o grupo cadastrado no sistema.',
+      'Esse botão abre atalhos de WhatsApp da clínica. Ele não significa que a IA está respondendo automaticamente.',
     bullets: [
-      'Ele é apenas um atalho de acesso e não significa que a IA está respondendo automaticamente.',
-      'As opções exibidas dependem do número e dos links configurados no painel.',
+      'Pode abrir o WhatsApp Web.',
+      'Pode abrir conversa com o número configurado da clínica.',
+      'Pode abrir o grupo cadastrado no painel.',
+      'É somente um atalho; a automação da IA continua separada.',
     ],
     target: 'whatsapp-shortcut',
     icon: MessageCircle,
   },
   {
-    title: 'Pronto. Você já sabe onde procurar.',
-    subtitle: 'O restante você aprende usando',
+    title: 'Exercício prático',
+    subtitle: 'Agora você vai mexer no formulário real',
     description:
-      'A ideia não é decorar o painel inteiro. Quando precisar fazer alguma coisa, lembre apenas de qual área cuida daquele assunto. O sistema foi separado justamente para isso.',
+      'Para terminar, vamos praticar um cadastro. O sistema abrirá a página Leads e o formulário “Novo Lead”. Você vai preencher como se estivesse cadastrando uma nova paciente, mas o exercício será encerrado sem salvar um contato fictício na base.',
     bullets: [
-      'Agenda: horários.',
-      'Pacientes: histórico de quem já é atendido.',
-      'Leads: pessoas interessadas.',
+      'Digite um nome de treino, por exemplo “Paciente Treino”.',
+      'Veja onde ficam telefone, e-mail, origem e procedimento de interesse.',
+      'Observe os campos Temperatura, Etapa e Notas.',
+      'Quando terminar de preencher, use o pequeno quadro de exercício para concluir. Ele fechará o formulário sem gravar o teste.',
+    ],
+    path: '/leads',
+    pageName: 'Leads',
+    selector: PAGE_SELECTOR,
+    icon: MousePointerClick,
+    exercise: true,
+  },
+  {
+    title: 'Tutorial concluído',
+    subtitle: 'Você já conhece o caminho das tarefas principais',
+    description:
+      'Não precisa decorar tudo. O importante é lembrar qual área cuida de cada assunto. Quando tiver dúvida, o tutorial pode ser aberto novamente pelo botão de ajuda do painel.',
+    bullets: [
+      'Hoje: rotina do dia.',
+      'Dashboard: visão geral.',
+      'Leads: novos contatos e oportunidades.',
+      'Pacientes: busca e histórico.',
+      'Agenda: datas e horários.',
       'IA Atendimento: treinamento da assistente.',
-      'Configurações: ajustes gerais.',
+      'Financeiro: valores e resultados.',
     ],
     icon: CheckCircle2,
   },
 ];
 
-function findVisibleTarget(id?: string) {
-  if (!id) return null;
-  const nodes = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour-id="${id}"]`));
-  return nodes.find((node) => node.getClientRects().length > 0) ?? null;
+const EXERCISE_INDEX = STEPS.findIndex((step) => step.exercise);
+const FINAL_INDEX = STEPS.length - 1;
+
+function findVisibleElement(step: TutorialStep) {
+  if (step.target) {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour-id="${step.target}"]`));
+    const target = nodes.find((node) => node.getClientRects().length > 0);
+    if (target) return target;
+  }
+
+  if (step.selector) {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>(step.selector));
+    return nodes.find((node) => node.getClientRects().length > 0) ?? null;
+  }
+
+  return null;
+}
+
+function clickVisibleButton(text: string) {
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('button'));
+  const button = buttons.find(
+    (item) => item.getClientRects().length > 0 && item.textContent?.toLowerCase().includes(text.toLowerCase()),
+  );
+  button?.click();
+  return Boolean(button);
 }
 
 export function FirstRunTutorial() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [targetVisible, setTargetVisible] = useState(false);
+  const [focusTick, setFocusTick] = useState(0);
+  const [practice, setPractice] = useState(false);
 
   const current = STEPS[step];
   const Icon = current.icon;
   const progress = useMemo(() => Math.round(((step + 1) / STEPS.length) * 100), [step]);
 
   const start = useCallback(() => {
+    setPractice(false);
     setStep(0);
     setOpen(true);
   }, []);
@@ -236,20 +497,47 @@ export function FirstRunTutorial() {
   }, [start]);
 
   useEffect(() => {
+    if (!open || !current.path || location.pathname === current.path) return;
+    navigate(current.path);
+  }, [current.path, location.pathname, navigate, open, step]);
+
+  useEffect(() => {
     if (!open) return;
 
-    const target = findVisibleTarget(current.target);
-    setTargetVisible(Boolean(target));
+    let highlighted: HTMLElement | null = null;
+    const timer = window.setTimeout(() => {
+      const target = findVisibleElement(current);
+      setTargetVisible(Boolean(target));
+      if (!target) return;
 
-    if (!target) return;
-
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    target.classList.add('relative', 'z-[95]', 'ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background');
+      highlighted = target;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      target.classList.add(
+        'relative',
+        'z-[95]',
+        'ring-4',
+        'ring-primary',
+        'ring-offset-4',
+        'ring-offset-background',
+        'rounded-xl',
+      );
+    }, current.path && current.path !== location.pathname ? 500 : 180);
 
     return () => {
-      target.classList.remove('relative', 'z-[95]', 'ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background');
+      window.clearTimeout(timer);
+      if (highlighted) {
+        highlighted.classList.remove(
+          'relative',
+          'z-[95]',
+          'ring-4',
+          'ring-primary',
+          'ring-offset-4',
+          'ring-offset-background',
+          'rounded-xl',
+        );
+      }
     };
-  }, [current.target, open, step]);
+  }, [current, focusTick, location.pathname, open, step]);
 
   useEffect(() => {
     if (open) localStorage.setItem(STEP_KEY, String(step));
@@ -267,94 +555,187 @@ export function FirstRunTutorial() {
   }
 
   function next() {
-    if (step === STEPS.length - 1) return finish();
-    setStep((value) => Math.min(value + 1, STEPS.length - 1));
+    if (current.exercise) {
+      beginPractice();
+      return;
+    }
+    if (step === FINAL_INDEX) {
+      finish();
+      return;
+    }
+    setStep((value) => Math.min(value + 1, FINAL_INDEX));
   }
 
   function previous() {
     setStep((value) => Math.max(value - 1, 0));
   }
 
-  if (!open) return null;
+  function showAgain() {
+    if (current.path && location.pathname !== current.path) navigate(current.path);
+    setFocusTick((value) => value + 1);
+  }
+
+  function openPracticeForm(attempt = 0) {
+    if (clickVisibleButton('Novo Lead')) return;
+    if (attempt < 14) window.setTimeout(() => openPracticeForm(attempt + 1), 250);
+  }
+
+  function beginPractice() {
+    localStorage.setItem(STEP_KEY, String(EXERCISE_INDEX));
+    setOpen(false);
+    setPractice(true);
+    navigate('/leads');
+    window.setTimeout(() => openPracticeForm(), 350);
+  }
+
+  function closePracticeDialog() {
+    const dialog = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]')).find(
+      (item) => item.getClientRects().length > 0,
+    );
+    if (!dialog) return;
+    const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button'));
+    const cancel = buttons.find((button) => button.textContent?.toLowerCase().includes('cancelar'));
+    cancel?.click();
+  }
+
+  function completePractice() {
+    closePracticeDialog();
+    setPractice(false);
+    setStep(FINAL_INDEX);
+    localStorage.setItem(STEP_KEY, String(FINAL_INDEX));
+    window.setTimeout(() => setOpen(true), 150);
+  }
+
+  function leavePractice() {
+    closePracticeDialog();
+    setPractice(false);
+    setStep(EXERCISE_INDEX);
+    window.setTimeout(() => setOpen(true), 150);
+  }
 
   return (
     <>
-      <div className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-[1px]" aria-hidden="true" />
-
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label="Tutorial do Painel GM"
-        className="fixed z-[100] inset-x-3 bottom-24 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[440px] max-h-[78vh] overflow-y-auto rounded-2xl border bg-card shadow-2xl"
-      >
-        <div className="sticky top-0 bg-card border-b px-5 pt-4 pb-3 rounded-t-2xl">
+      {practice && (
+        <section className="fixed z-[120] left-3 right-3 bottom-24 md:left-auto md:right-5 md:bottom-5 md:w-[380px] rounded-2xl border bg-card shadow-2xl p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Icon className="w-5 h-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                  Tutorial · passo {step + 1} de {STEPS.length}
-                </p>
-                <h2 className="font-bold text-lg leading-tight mt-0.5">{current.title}</h2>
-              </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-primary">Exercício prático</p>
+              <h2 className="font-bold text-base mt-0.5">Preencha o formulário real</h2>
             </div>
-            <button
-              type="button"
-              onClick={closeForNow}
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Fechar e continuar depois"
-            >
+            <button type="button" onClick={leavePractice} className="p-1.5 rounded-md text-muted-foreground hover:bg-muted" aria-label="Sair do exercício">
               <X className="w-4 h-4" />
             </button>
           </div>
-
-          <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="text-xs leading-5 text-muted-foreground space-y-1">
+            <p><b className="text-foreground">1.</b> Digite um nome de treino.</p>
+            <p><b className="text-foreground">2.</b> Veja telefone, e-mail, origem e procedimento de interesse.</p>
+            <p><b className="text-foreground">3.</b> Observe Temperatura, Etapa, Ticket e Notas.</p>
+            <p><b className="text-foreground">4.</b> Não precisa clicar em “Criar”. Quando terminar, clique abaixo.</p>
           </div>
-        </div>
-
-        <div className="p-5 space-y-4">
-          <div>
-            <p className="font-semibold text-sm text-foreground">{current.subtitle}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.description}</p>
-          </div>
-
-          {current.bullets?.length ? (
-            <div className="rounded-xl bg-muted/60 p-3.5 space-y-2.5">
-              {current.bullets.map((item) => (
-                <div key={item} className="flex gap-2.5 text-sm leading-5">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          {current.target && !targetVisible ? (
-            <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs leading-5 text-muted-foreground">
-              <CircleHelp className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>No celular, alguns itens ficam dentro do menu ☰. O nome mostrado acima é exatamente o que você deve procurar.</span>
-            </div>
-          ) : null}
-
-          <div className="flex items-center justify-between gap-2 pt-1">
-            <Button type="button" variant="ghost" size="sm" onClick={closeForNow}>
-              Fazer depois
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => openPracticeForm()} className="flex-1">
+              <RotateCcw className="w-4 h-4 mr-1" /> Reabrir formulário
             </Button>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={previous} disabled={step === 0}>
-                <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
-              </Button>
-              <Button type="button" size="sm" onClick={next}>
-                {step === STEPS.length - 1 ? 'Concluir tutorial' : 'Próximo'}
-                {step !== STEPS.length - 1 && <ChevronRight className="w-4 h-4 ml-1" />}
-              </Button>
-            </div>
+            <Button type="button" size="sm" onClick={completePractice} className="flex-1">
+              <CheckCircle2 className="w-4 h-4 mr-1" /> Concluí a prática
+            </Button>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[80] bg-black/35 backdrop-blur-[1px]" aria-hidden="true" />
+
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tutorial do Painel GM"
+            className="fixed z-[100] inset-x-3 bottom-24 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-[460px] max-h-[80vh] overflow-y-auto rounded-2xl border bg-card shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 bg-card border-b px-5 pt-4 pb-3 rounded-t-2xl">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      Tutorial · passo {step + 1} de {STEPS.length}
+                    </p>
+                    <h2 className="font-bold text-lg leading-tight mt-0.5">{current.title}</h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeForNow}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label="Fechar e continuar depois"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {current.pageName && (
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1.5 text-xs font-semibold">
+                  <MousePointerClick className="w-3.5 h-3.5" />
+                  Página aberta: {current.pageName}
+                </div>
+              )}
+
+              <div>
+                <p className="font-semibold text-sm text-foreground">{current.subtitle}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{current.description}</p>
+              </div>
+
+              {current.bullets?.length ? (
+                <div className="rounded-xl bg-muted/60 p-3.5 space-y-2.5">
+                  {current.bullets.map((item) => (
+                    <div key={item} className="flex gap-2.5 text-sm leading-5">
+                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {(current.target || current.selector) && !targetVisible ? (
+                <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs leading-5 text-muted-foreground">
+                  <CircleHelp className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>A página foi aberta, mas este ponto pode estar fora da área visível. Use “Mostrar novamente” para tentar destacar a parte explicada.</span>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {(current.target || current.selector || current.path) && (
+                  <Button type="button" variant="secondary" size="sm" onClick={showAgain}>
+                    <MousePointerClick className="w-4 h-4 mr-1" /> Mostrar novamente
+                  </Button>
+                )}
+                <Button type="button" variant="ghost" size="sm" onClick={closeForNow}>
+                  Fazer depois
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 border-t pt-4">
+                <Button type="button" variant="outline" size="sm" onClick={previous} disabled={step === 0}>
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
+                </Button>
+                <Button type="button" size="sm" onClick={next}>
+                  {current.exercise ? 'Iniciar exercício' : step === FINAL_INDEX ? 'Concluir tutorial' : 'Entendi, próximo'}
+                  {step !== FINAL_INDEX && <ChevronRight className="w-4 h-4 ml-1" />}
+                </Button>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </>
   );
 }
