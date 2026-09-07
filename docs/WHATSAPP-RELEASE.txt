@@ -1,0 +1,2 @@
+Release da integração WhatsApp preparada em 07/09/2026.
+Inclui central no painel, banco, RLS, webhook oficial, envio manual e templates.
