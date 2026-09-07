@@ -9,6 +9,8 @@ O código da integração está preparado no repositório, mas a ativação real
 
 A resposta automática começa **desligada por padrão** (`auto_reply_enabled = false`).
 
+Projeto Supabase oficial do Painel GM: `btmbtnsoszsypuvongzq`.
+
 Release preparada para produção do painel em 07/09/2026.
 
 ---
@@ -18,6 +20,7 @@ Release preparada para produção do painel em 07/09/2026.
 - `supabase/migrations/20260907200000_whatsapp_integration_foundation.sql`
 - `supabase/functions/whatsapp-webhook/index.ts`
 - `supabase/functions/whatsapp-send/index.ts`
+- `supabase/functions/whatsapp-template/index.ts`
 
 O webhook recebe mensagens, salva histórico, respeita handoff humano e usa a memória já registrada em `ai_training_examples` para gerar respostas via Gemini.
 
@@ -44,7 +47,7 @@ Também são usados automaticamente pelo Supabase:
 
 ## 3. Aplicar banco
 
-No SQL Editor do Supabase, executar o arquivo:
+No SQL Editor do projeto **btmbtnsoszsypuvongzq**, executar o arquivo:
 
 `supabase/migrations/20260907200000_whatsapp_integration_foundation.sql`
 
@@ -67,11 +70,15 @@ Publicar com JWT desativado, porque a Meta chama o endpoint sem login do Supabas
 
 Endpoint esperado:
 
-`https://ktnwehlysguwtjyshqtc.supabase.co/functions/v1/whatsapp-webhook`
+`https://btmbtnsoszsypuvongzq.supabase.co/functions/v1/whatsapp-webhook`
 
 ### whatsapp-send
 
 Publicar com JWT **ativado**. Ela serve para envio manual pelo painel depois que o Auth real for restaurado.
+
+### whatsapp-template
+
+Publicar com JWT **ativado** para disparos por templates oficiais aprovados pela Meta.
 
 ---
 
@@ -86,7 +93,7 @@ Publicar com JWT **ativado**. Ela serve para envio manual pelo painel depois que
 5. Criar token permanente pelo Business Manager/System User para produção.
 6. Abrir **WhatsApp > Configuration > Webhooks**.
 7. Callback URL:
-   `https://ktnwehlysguwtjyshqtc.supabase.co/functions/v1/whatsapp-webhook`
+   `https://btmbtnsoszsypuvongzq.supabase.co/functions/v1/whatsapp-webhook`
 8. Verify Token: exatamente o mesmo valor salvo como `WHATSAPP_VERIFY_TOKEN` no Supabase.
 9. Assinar o campo/evento `messages`.
 10. Fazer teste primeiro com o número de teste da Meta.
