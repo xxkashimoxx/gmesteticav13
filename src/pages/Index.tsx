@@ -41,6 +41,10 @@ const ROUTE_META: Record<string, { title: string; description: string }> = {
     title: 'Integrações — Marketing e tráfego | GM Estética',
     description: 'Conecte WhatsApp, Meta Ads, Google Ads e ferramentas de tráfego pago em um painel dedicado.',
   },
+  '/whatsapp': {
+    title: 'WhatsApp — Atendimento | GM Estética',
+    description: 'Central de conversas do WhatsApp com atendimento humano, IA, histórico e controle de automação.',
+  },
   '/procedures': {
     title: 'Procedimentos — Catálogo | GM Estética',
     description: 'Catálogo de procedimentos com duração, categoria, preço padrão e descrição para uso na agenda e vendas.',
