@@ -9,6 +9,8 @@ O código da integração está preparado no repositório, mas a ativação real
 
 A resposta automática começa **desligada por padrão** (`auto_reply_enabled = false`).
 
+Release preparada para produção do painel em 07/09/2026.
+
 ---
 
 ## 1. Arquivos preparados
