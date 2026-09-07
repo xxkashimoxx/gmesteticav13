@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.whatsapp-send]
 verify_jwt = true
+
+[functions.whatsapp-template]
+verify_jwt = true
