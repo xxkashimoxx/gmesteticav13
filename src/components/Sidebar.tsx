@@ -30,6 +30,7 @@ const navigation: NavItem[] = [
   { name: 'Hoje', href: '/hoje', icon: Sun, roles: ['admin', 'staff'] },
   { name: 'Dashboard', href: '/', icon: BarChart3 },
   { name: 'IA Atendimento', href: '/ai-attendance', icon: Bot, roles: ['admin', 'staff'] },
+  { name: 'WhatsApp', href: '/whatsapp', icon: MessageCircle, roles: ['admin', 'staff'] },
   { name: 'Leads', href: '/leads', icon: Flame },
   { name: 'Procedimentos', href: '/procedures', icon: Syringe },
   { name: 'Pacientes', href: '/patients', icon: Users, roles: ['admin', 'staff'] },
@@ -43,7 +44,7 @@ const mobileBottomNavBase: NavItem[] = [
   { name: 'Hoje', href: '/hoje', icon: Sun },
   { name: 'Agenda', href: '/schedule', icon: Calendar },
   { name: 'IA', href: '/ai-attendance', icon: Bot },
-  { name: 'Leads', href: '/leads', icon: Flame },
+  { name: 'WhatsApp', href: '/whatsapp', icon: MessageCircle },
   { name: 'Mais', href: '/', icon: BarChart3 },
 ];
 
