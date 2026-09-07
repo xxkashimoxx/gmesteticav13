@@ -18,6 +18,7 @@ import Leads from "./pages/Leads";
 import Integrations from "./pages/Integrations";
 import Procedures from "./pages/Procedures";
 import AIAttendance from "./pages/AIAttendance";
+import WhatsApp from "./pages/WhatsApp";
 import Auth from "./pages/Auth";
 import LeadCapture from "./pages/LeadCapture";
 import Onboarding from "./pages/Onboarding";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="finance" element={<ProtectedRoute allow={["admin", "staff"]}><Finance /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute allow={["admin"]}><Settings /></ProtectedRoute>} />
               <Route path="ai-attendance" element={<ProtectedRoute allow={["admin", "staff"]}><AIAttendance /></ProtectedRoute>} />
+              <Route path="whatsapp" element={<ProtectedRoute allow={["admin", "staff"]}><WhatsApp /></ProtectedRoute>} />
               <Route path="schedule" element={<Schedule />} />
               <Route path="leads" element={<Leads />} />
               <Route path="integrations" element={<Integrations />} />
