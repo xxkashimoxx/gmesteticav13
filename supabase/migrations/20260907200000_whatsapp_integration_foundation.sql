@@ -3,7 +3,7 @@ create table if not exists public.whatsapp_contacts (
   wa_id text not null unique,
   phone text,
   display_name text,
-  lead_id uuid,
+  lead_id uuid references public.leads(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -59,6 +59,45 @@ alter table public.whatsapp_contacts enable row level security;
 alter table public.whatsapp_conversations enable row level security;
 alter table public.whatsapp_messages enable row level security;
 alter table public.whatsapp_settings enable row level security;
+
+grant select, insert, update, delete on public.whatsapp_contacts to authenticated;
+grant select, insert, update, delete on public.whatsapp_conversations to authenticated;
+grant select, insert, update, delete on public.whatsapp_messages to authenticated;
+grant select, update on public.whatsapp_settings to authenticated;
+
+grant all on public.whatsapp_contacts to service_role;
+grant all on public.whatsapp_conversations to service_role;
+grant all on public.whatsapp_messages to service_role;
+grant all on public.whatsapp_settings to service_role;
+
+drop policy if exists "Admin and staff manage WhatsApp contacts" on public.whatsapp_contacts;
+create policy "Admin and staff manage WhatsApp contacts"
+  on public.whatsapp_contacts for all to authenticated
+  using (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'))
+  with check (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'));
+
+drop policy if exists "Admin and staff manage WhatsApp conversations" on public.whatsapp_conversations;
+create policy "Admin and staff manage WhatsApp conversations"
+  on public.whatsapp_conversations for all to authenticated
+  using (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'))
+  with check (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'));
+
+drop policy if exists "Admin and staff manage WhatsApp messages" on public.whatsapp_messages;
+create policy "Admin and staff manage WhatsApp messages"
+  on public.whatsapp_messages for all to authenticated
+  using (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'))
+  with check (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'));
+
+drop policy if exists "Admin and staff view WhatsApp settings" on public.whatsapp_settings;
+create policy "Admin and staff view WhatsApp settings"
+  on public.whatsapp_settings for select to authenticated
+  using (public.has_role(auth.uid(), 'admin') or public.has_role(auth.uid(), 'staff'));
+
+drop policy if exists "Admin manages WhatsApp settings" on public.whatsapp_settings;
+create policy "Admin manages WhatsApp settings"
+  on public.whatsapp_settings for update to authenticated
+  using (public.has_role(auth.uid(), 'admin'))
+  with check (public.has_role(auth.uid(), 'admin'));
 
 comment on table public.whatsapp_contacts is 'Contatos recebidos pela API oficial do WhatsApp';
 comment on table public.whatsapp_conversations is 'Conversas do WhatsApp e estado de handoff humano/IA';
