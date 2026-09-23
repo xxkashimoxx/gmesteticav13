@@ -39,7 +39,7 @@ No aplicativo e na conta WhatsApp Business corretos:
 5. Habilite o compartilhamento de histórico no onboarding, se quiser que a Meta envie mensagens anteriores e se a conta der esse consentimento.
 6. Envie uma mensagem de teste, responda pelo app e confira se entram eventos `messages` e `smb_message_echoes`; consulte a tela WhatsApp do CRM.
 
-`messages` traz mensagens recebidas e estados de entrega/leitura. `smb_message_echoes` é o campo necessário para receber ecos das mensagens enviadas pelo WhatsApp Business App ou dispositivos vinculados após coexistência; `smb_app_state_sync` sincroniza atualizações de contatos. O evento `history` depende do fluxo e do compartilhamento de histórico oferecido pela Meta.
+`messages` traz mensagens recebidas e estados de entrega/leitura. `message_echoes` registra ecos de mensagens enviadas pela Cloud API. `smb_message_echoes` é o campo necessário para receber ecos das mensagens enviadas pelo WhatsApp Business App ou dispositivos vinculados após coexistência; `smb_app_state_sync` sincroniza atualizações de contatos. O evento `history` depende do fluxo e do compartilhamento de histórico oferecido pela Meta.
 
 ## Secrets no Supabase
 
