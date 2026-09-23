@@ -1,296 +1,402 @@
-// Webhook oficial da Meta WhatsApp Cloud API.
-// GET valida o webhook. POST recebe mensagens/status, grava no Supabase e pode responder com IA.
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.108.2';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN') ?? '';
-const META_APP_SECRET = Deno.env.get('META_APP_SECRET') ?? '';
-const ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? '';
-const ENV_PHONE_NUMBER_ID = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID') ?? '';
-const API_VERSION = Deno.env.get('WHATSAPP_API_VERSION') ?? 'v23.0';
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN') ?? Deno.env.get('META_VERIFY_TOKEN') ?? '';
+const APP_SECRET = Deno.env.get('WHATSAPP_APP_SECRET') ?? Deno.env.get('META_APP_SECRET') ?? '';
+const PHONE_NUMBER_ID = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID') ?? '';
+const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE);
+const db = SUPABASE_URL && SERVICE_ROLE_KEY
+  ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
-function hex(bytes: ArrayBuffer) {
-  return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, '0')).join('');
+function bytesToHex(bytes: ArrayBuffer) {
+  return Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256(value: string) {
+  return bytesToHex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
 }
 
 async function validMetaSignature(raw: string, signature: string | null) {
-  if (!META_APP_SECRET) return true; // permite configuração inicial; em produção configure META_APP_SECRET.
-  if (!signature?.startsWith('sha256=')) return false;
+  if (!APP_SECRET || !/^sha256=[a-f0-9]{64}$/i.test(signature ?? '')) return false;
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(META_APP_SECRET),
+    new TextEncoder().encode(APP_SECRET),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign'],
+    ['verify'],
   );
-  const digest = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(raw));
-  return `sha256=${hex(digest)}` === signature;
+  const digest = Uint8Array.from(signature!.slice(7).match(/../g)!, (part) => parseInt(part, 16));
+  return crypto.subtle.verify('HMAC', key, digest, new TextEncoder().encode(raw));
 }
 
-async function getSettings() {
-  const { data } = await supabase.from('whatsapp_settings').select('*').eq('id', 1).maybeSingle();
-  return data ?? {
-    auto_reply_enabled: false,
-    phone_number_id: null,
-    api_version: API_VERSION,
-    handoff_keywords: ['atendente', 'humano', 'pessoa', 'recepção', 'recepcao', 'falar com a doutora'],
+function normalizePhone(raw: unknown): string | null {
+  const digits = String(raw ?? '').replace(/\D/g, '');
+  const phone = digits.length === 10 || digits.length === 11 ? '55' + digits : digits;
+  return /^[1-9]\d{9,14}$/.test(phone) ? phone : null;
+}
+
+function toIso(raw: unknown) {
+  if (raw === null || raw === undefined || raw === '') return new Date().toISOString();
+  const numeric = typeof raw === 'number' ? raw : Number(String(raw));
+  const date = Number.isFinite(numeric) && numeric > 0
+    ? new Date(numeric < 1e12 ? numeric * 1000 : numeric)
+    : new Date(String(raw));
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function bodyFromMessage(message: any): string {
+  const type = String(message?.type ?? 'unknown').toLowerCase();
+  if (type === 'text') return String(message?.text?.body ?? '');
+  if (type === 'button') return String(message?.button?.text ?? '');
+  if (type === 'interactive') {
+    return String(message?.interactive?.button_reply?.title ?? message?.interactive?.list_reply?.title ?? '');
+  }
+  if (type === 'image') return String(message?.image?.caption ?? '[Imagem recebida]');
+  if (type === 'video') return String(message?.video?.caption ?? '[Vídeo recebido]');
+  if (type === 'audio' || type === 'voice') return '[Áudio recebido]';
+  if (type === 'document') {
+    const filename = String(message?.document?.filename ?? '');
+    return filename ? '[Documento recebido: ' + filename + ']' : '[Documento recebido]';
+  }
+  if (type === 'sticker') return '[Figurinha recebida]';
+  if (type === 'location') {
+    const label = [message?.location?.name, message?.location?.address].filter(Boolean).join(' — ');
+    return label || '[Localização recebida]';
+  }
+  if (type === 'contacts') return '[Contato compartilhado]';
+  if (type === 'reaction') return String(message?.reaction?.emoji ?? '[Reação]');
+  if (type === 'edit') return String(message?.edit?.text?.body ?? message?.text?.body ?? '[Mensagem editada]');
+  if (type === 'revoke' || type === 'delete') return '[Mensagem apagada no WhatsApp]';
+  return '[Mensagem do tipo ' + type + ']';
+}
+
+async function saveMessage(args: {
+  id: unknown;
+  phone: unknown;
+  name?: unknown;
+  direction: 'in' | 'out';
+  type?: unknown;
+  body?: string;
+  raw: unknown;
+  timestamp?: unknown;
+}) {
+  const id = String(args.id ?? '').trim();
+  const phone = normalizePhone(args.phone);
+  if (!id || !phone) return;
+  const name = String(args.name ?? '').trim().slice(0, 160) || null;
+  const type = String(args.type ?? 'unknown').slice(0, 80);
+  const body = String(args.body ?? bodyFromMessage(args.raw)).slice(0, 4096) || '[Mensagem WhatsApp]';
+  const { error } = await db!.rpc('gm_whatsapp_ingest_message', {
+    p_provider_id: id,
+    p_phone: phone,
+    p_name: name,
+    p_direction: args.direction,
+    p_body: body,
+    p_status: args.direction === 'in' ? 'received' : 'sent',
+    p_message_type: type,
+    p_raw_payload: args.raw,
+    p_at: toIso(args.timestamp),
+  });
+  if (error) throw new Error('Não foi possível salvar a mensagem WhatsApp.');
+}
+
+async function saveContacts(value: any) {
+  const contacts = Array.isArray(value?.contacts) ? value.contacts : [];
+  for (const item of contacts) {
+    const phone = normalizePhone(item?.wa_id ?? item?.input);
+    if (!phone) continue;
+    const name = item?.profile?.name ?? item?.name ?? null;
+    const { error } = await db!.rpc('gm_whatsapp_ingest_contact', {
+      p_phone: phone,
+      p_name: name,
+      p_raw_payload: item,
+      p_at: new Date().toISOString(),
+    });
+    if (error) throw new Error('Não foi possível salvar um contato WhatsApp.');
+  }
+}
+
+async function saveStatuses(value: any) {
+  for (const status of Array.isArray(value?.statuses) ? value.statuses : []) {
+    const providerId = String(status?.id ?? '').trim();
+    const state = String(status?.status ?? '');
+    if (!providerId || !['accepted', 'sent', 'delivered', 'read', 'failed'].includes(state)) continue;
+    const errorCode = status?.errors?.[0]?.code == null ? null : String(status.errors[0].code);
+    const requestId = /^[0-9a-f-]{36}$/i.test(String(status?.biz_opaque_callback_data ?? ''))
+      ? String(status.biz_opaque_callback_data)
+      : null;
+    const { error } = await db!.rpc('gm_whatsapp_status', {
+      p_provider_id: providerId,
+      p_status: state,
+      p_at: toIso(status?.timestamp),
+      p_error: errorCode,
+      p_request_id: requestId,
+    });
+    if (error) throw new Error('Não foi possível atualizar o status da mensagem WhatsApp.');
+  }
+}
+
+async function handleInbound(value: any) {
+  await saveContacts(value);
+  for (const message of Array.isArray(value?.messages) ? value.messages : []) {
+    const waId = String(message?.from ?? '');
+    const contact = (Array.isArray(value?.contacts) ? value.contacts : [])
+      .find((candidate: any) => String(candidate?.wa_id ?? '') === waId);
+    await saveMessage({
+      id: message?.id,
+      phone: waId,
+      name: contact?.profile?.name,
+      direction: 'in',
+      type: message?.type,
+      raw: message,
+      timestamp: message?.timestamp,
+    });
+  }
+  await saveStatuses(value);
+}
+
+async function handleEchoes(value: any) {
+  for (const message of Array.isArray(value?.message_echoes) ? value.message_echoes : []) {
+    const type = String(message?.type ?? 'unknown');
+    const id = String(message?.id ?? '');
+    const eventId = ['edit', 'revoke', 'delete'].includes(type.toLowerCase())
+      ? id + ':' + type.toLowerCase() + ':' + String(message?.timestamp ?? 'unknown')
+      : id;
+    await saveMessage({
+      id: eventId,
+      phone: message?.to,
+      name: message?.contact?.name,
+      direction: 'out',
+      type: message?.type,
+      raw: message,
+      timestamp: message?.timestamp,
+    });
+  }
+}
+
+function isMessageLike(value: any) {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    && value.id != null && value.type != null
+    && (value.from != null || value.to != null || value.from_me != null || value.is_from_me != null || value.timestamp != null);
+}
+
+async function handleHistory(value: any) {
+  const metadata = value?.metadata ?? {};
+  const businessPhone = normalizePhone(metadata?.display_phone_number);
+  const seen = new Set<string>();
+
+  const visit = async (node: any, inheritedPhone: unknown, inheritedName: unknown, depth: number): Promise<void> => {
+    if (depth > 16 || node == null) return;
+    if (Array.isArray(node)) {
+      for (const child of node) await visit(child, inheritedPhone, inheritedName, depth + 1);
+      return;
+    }
+    if (typeof node !== 'object') return;
+
+    const contact = node.contact ?? node.customer ?? node.profile ?? {};
+    const contextPhone = contact?.phone_number ?? contact?.wa_id ?? node.wa_id ?? node.phone_number ?? node.phone ?? inheritedPhone;
+    const contextName = contact?.full_name ?? contact?.name ?? contact?.first_name ?? node.contact_name ?? inheritedName;
+
+    if (isMessageLike(node)) {
+      const id = String(node.id);
+      if (!seen.has(id)) {
+        seen.add(id);
+        const from = normalizePhone(node.from);
+        const to = normalizePhone(node.to);
+        const outgoing = node.from_me === true || node.is_from_me === true || (!!businessPhone && from === businessPhone);
+        const phone = outgoing
+          ? (to && to !== businessPhone ? to : contextPhone)
+          : (from && from !== businessPhone ? from : (to && to !== businessPhone ? to : contextPhone));
+        await saveMessage({
+          id,
+          phone,
+          name: contextName,
+          direction: outgoing ? 'out' : 'in',
+          type: node.type,
+          raw: node,
+          timestamp: node.timestamp ?? node.time ?? node.t,
+        });
+      }
+    }
+
+    for (const [key, child] of Object.entries(node)) {
+      if (key === 'metadata' || key === 'errors') continue;
+      await visit(child, contextPhone, contextName, depth + 1);
+    }
+  };
+
+  await visit(value?.history ?? value, null, null, 0);
+}
+
+async function handleContactState(value: any) {
+  for (const item of Array.isArray(value?.state_sync) ? value.state_sync : []) {
+    if (String(item?.type ?? '') !== 'contact') continue;
+    const phone = normalizePhone(item?.contact?.phone_number);
+    if (!phone) continue;
+    const action = String(item?.action ?? '').toLowerCase();
+    if (action === 'remove' || action === 'delete') {
+      const { error } = await db!.from('whatsapp_contacts').delete().eq('wa_id', phone);
+      if (error) throw new Error('Não foi possível atualizar a lista de contatos WhatsApp.');
+      continue;
+    }
+    const name = item?.contact?.full_name ?? item?.contact?.first_name ?? null;
+    const { error } = await db!.rpc('gm_whatsapp_ingest_contact', {
+      p_phone: phone,
+      p_name: name,
+      p_raw_payload: item,
+      p_at: toIso(item?.metadata?.timestamp),
+    });
+    if (error) throw new Error('Não foi possível sincronizar um contato WhatsApp.');
+  }
+}
+
+function eventInfo(payload: any) {
+  const entries = Array.isArray(payload?.entry) ? payload.entry : [];
+  const changes = entries.flatMap((entry: any) => Array.isArray(entry?.changes) ? entry.changes : []);
+  const fields = [...new Set(changes.map((change: any) => String(change?.field ?? '')).filter(Boolean))];
+  const firstValue = changes.find((change: any) => change?.value)?.value ?? {};
+  return {
+    type: fields.join(',').slice(0, 120) || String(payload?.object ?? 'unknown').slice(0, 120),
+    accountId: entries[0]?.id ?? payload?.id ?? null,
+    phoneNumberId: firstValue?.metadata?.phone_number_id ?? null,
+    changes,
   };
 }
 
-async function sendText(to: string, message: string, settings: any) {
-  const phoneNumberId = ENV_PHONE_NUMBER_ID || settings?.phone_number_id;
-  const version = settings?.api_version || API_VERSION;
-  if (!ACCESS_TOKEN || !phoneNumberId) {
-    throw new Error('WhatsApp ainda sem WHATSAPP_ACCESS_TOKEN/WHATSAPP_PHONE_NUMBER_ID');
-  }
-
-  const res = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${ACCESS_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to,
-      type: 'text',
-      text: { preview_url: false, body: message },
-    }),
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Meta ${res.status}: ${JSON.stringify(data)}`);
-  return data;
-}
-
-async function buildMemory() {
-  const { data } = await supabase
-    .from('ai_training_examples')
-    .select('question,answer,corrected_answer,approved,source')
-    .order('created_at', { ascending: false })
-    .limit(60);
-
-  const useful = (data ?? []).filter((x: any) => x.approved || x.corrected_answer);
-  return useful
-    .slice(0, 40)
-    .map((x: any) => `Cliente: ${x.question}\nResposta preferida: ${x.corrected_answer || x.answer}`)
-    .join('\n\n');
-}
-
-async function buildRecentConversation(conversationId: string) {
-  const { data } = await supabase
-    .from('whatsapp_messages')
-    .select('sender,body,created_at')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: false })
-    .limit(14);
-
-  return (data ?? [])
-    .reverse()
-    .map((m: any) => `${m.sender === 'client' ? 'Cliente' : 'Clínica'}: ${m.body ?? ''}`)
-    .join('\n');
-}
-
-async function generateReply(message: string, conversationId: string, displayName?: string | null) {
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY não configurada');
-  const [memory, history] = await Promise.all([buildMemory(), buildRecentConversation(conversationId)]);
-
-  const system = `Você atende clientes da GM Estética Avançada pelo WhatsApp.\n\nREGRAS:\n- Português brasileiro natural, humano, curto e claro.\n- Comece pela dúvida ou incômodo que a cliente descreveu; não despeje lista de procedimentos.\n- Use as palavras da própria cliente quando possível.\n- Explique de forma simples.\n- Quando fizer sentido, cite no máximo 1 ou 2 possibilidades e a diferença prática entre elas.\n- Faça no máximo uma pergunta útil por resposta.\n- Não invente preço, diagnóstico, contraindicação, resultado, disponibilidade ou promessa clínica.\n- Não confirme agendamento sem o sistema ter um horário real.\n- Se houver correção humana na memória, ela tem prioridade máxima.\n- Normalmente responda em 40 a 90 palavras.\n- Não diga que você é uma IA.\n\nMEMÓRIA APROVADA DA GM:\n${memory || '(sem exemplos aprovados ainda)'}`;
-
-  const prompt = `Nome do contato: ${displayName || 'cliente'}\n\nHISTÓRICO RECENTE:\n${history}\n\nMENSAGEM NOVA:\n${message}\n\nResponda somente com o texto que deve ser enviado no WhatsApp.`;
-
-  const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent', {
-    method: 'POST',
-    headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.55,
-        maxOutputTokens: 650,
-        thinkingConfig: { thinkingLevel: 'low' },
-      },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('').trim();
-  if (!text) throw new Error('Gemini retornou resposta vazia');
-  return text;
-}
-
-function textFromMessage(message: any) {
-  if (message?.type === 'text') return message.text?.body ?? '';
-  if (message?.type === 'button') return message.button?.text ?? '';
-  if (message?.type === 'interactive') {
-    return message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '';
-  }
-  return '';
-}
-
-async function processStatus(status: any) {
-  if (!status?.id) return;
-  await supabase
-    .from('whatsapp_messages')
-    .update({ status: status.status ?? null, raw_payload: status })
-    .eq('meta_message_id', status.id);
-}
-
-async function processInbound(value: any, message: any) {
-  const waId = String(message.from ?? '').trim();
-  if (!waId || !message.id) return;
-
-  const existing = await supabase
-    .from('whatsapp_messages')
-    .select('id')
-    .eq('meta_message_id', message.id)
+async function openEvent(hash: string, payload: any, info: ReturnType<typeof eventInfo>) {
+  const existing = await db!.from('whatsapp_webhook_events')
+    .select('processing_status,attempt_count,received_at')
+    .eq('event_hash', hash)
     .maybeSingle();
-  if (existing.data) return;
+  if (existing.error) throw new Error('Não foi possível verificar o evento recebido.');
+  if (existing.data && ['processed', 'ignored'].includes(existing.data.processing_status)) return false;
 
-  const displayName = value?.contacts?.find((c: any) => c.wa_id === waId)?.profile?.name ?? null;
-  const { data: contact, error: contactError } = await supabase
-    .from('whatsapp_contacts')
-    .upsert(
-      {
-        wa_id: waId,
-        phone: waId,
-        display_name: displayName,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'wa_id' },
-    )
-    .select('*')
-    .single();
-  if (contactError || !contact) throw contactError ?? new Error('Falha ao criar contato');
+  const row = {
+    event_hash: hash,
+    event_type: info.type,
+    business_account_id: info.accountId,
+    phone_number_id: info.phoneNumberId,
+    payload,
+    processing_status: 'received',
+    attempt_count: Number(existing.data?.attempt_count ?? 0) + 1,
+    processing_error: null,
+    received_at: existing.data?.received_at ?? new Date().toISOString(),
+    processed_at: null,
+  };
+  const { error } = await db!.from('whatsapp_webhook_events').upsert(row, { onConflict: 'event_hash' });
+  if (error) throw new Error('Não foi possível arquivar o evento recebido.');
+  return true;
+}
 
-  let { data: conversation } = await supabase
-    .from('whatsapp_conversations')
-    .select('*')
-    .eq('contact_id', contact.id)
-    .in('status', ['open', 'human'])
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+async function finishEvent(hash: string, state: 'processed' | 'ignored' | 'failed', errorMessage: string | null = null) {
+  const { error } = await db!.from('whatsapp_webhook_events')
+    .update({
+      processing_status: state,
+      processing_error: errorMessage,
+      processed_at: new Date().toISOString(),
+    })
+    .eq('event_hash', hash);
+  if (error) throw new Error('Não foi possível atualizar o registro do evento.');
+}
 
-  if (!conversation) {
-    const created = await supabase
-      .from('whatsapp_conversations')
-      .insert({ contact_id: contact.id, status: 'open', ai_enabled: true, last_message_at: new Date().toISOString() })
-      .select('*')
-      .single();
-    if (created.error || !created.data) throw created.error ?? new Error('Falha ao abrir conversa');
-    conversation = created.data;
-  }
+async function processPayload(payload: any, changes: any[]) {
+  if (payload?.object !== 'whatsapp_business_account') return 'ignored' as const;
+  if (!changes.length) return 'ignored' as const;
 
-  const body = textFromMessage(message);
-  await supabase.from('whatsapp_messages').insert({
-    conversation_id: conversation.id,
-    meta_message_id: message.id,
-    direction: 'inbound',
-    sender: 'client',
-    message_type: message.type ?? 'unknown',
-    body: body || `[${message.type ?? 'mensagem'}]`,
-    status: 'received',
-    raw_payload: message,
-  });
-  await supabase
-    .from('whatsapp_conversations')
-    .update({ last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq('id', conversation.id);
+  let handled = 0;
+  for (const change of changes) {
+    const value = change?.value ?? {};
+    const receivedPhoneId = String(value?.metadata?.phone_number_id ?? '');
+    if (PHONE_NUMBER_ID && receivedPhoneId && receivedPhoneId !== PHONE_NUMBER_ID) continue;
 
-  const settings = await getSettings();
-  const normalized = body.toLocaleLowerCase('pt-BR');
-  const wantsHuman = (settings.handoff_keywords ?? []).some((word: string) => normalized.includes(String(word).toLocaleLowerCase('pt-BR')));
-
-  if (wantsHuman) {
-    await supabase
-      .from('whatsapp_conversations')
-      .update({ status: 'human', ai_enabled: false, updated_at: new Date().toISOString() })
-      .eq('id', conversation.id);
-    if (ACCESS_TOKEN && (ENV_PHONE_NUMBER_ID || settings.phone_number_id)) {
-      const handoff = 'Claro. Vou deixar seu atendimento com uma pessoa da equipe da GM. Assim que possível, alguém continua por aqui.';
-      const sent = await sendText(waId, handoff, settings);
-      await supabase.from('whatsapp_messages').insert({
-        conversation_id: conversation.id,
-        meta_message_id: sent?.messages?.[0]?.id ?? null,
-        direction: 'outbound',
-        sender: 'system',
-        message_type: 'text',
-        body: handoff,
-        status: 'sent',
-        raw_payload: sent,
-      });
+    const field = String(change?.field ?? '').toLowerCase();
+    if (field === 'messages') {
+      await handleInbound(value);
+      handled++;
+    } else if (field === 'smb_message_echoes' || field === 'message_echoes') {
+      await handleEchoes(value);
+      handled++;
+    } else if (field === 'history' || Array.isArray(value?.history)) {
+      await handleHistory(value);
+      handled++;
+    } else if (field === 'smb_app_state_sync') {
+      await handleContactState(value);
+      handled++;
     }
-    return;
+    // Unknown Meta webhook fields remain available in whatsapp_webhook_events.payload.
   }
-
-  if (!body || message.type !== 'text') return;
-  if (!settings.auto_reply_enabled || !conversation.ai_enabled || conversation.status === 'human') return;
-
-  const reply = await generateReply(body, conversation.id, displayName);
-  const sent = await sendText(waId, reply, settings);
-  await supabase.from('whatsapp_messages').insert({
-    conversation_id: conversation.id,
-    meta_message_id: sent?.messages?.[0]?.id ?? null,
-    direction: 'outbound',
-    sender: 'ai',
-    message_type: 'text',
-    body: reply,
-    status: 'sent',
-    raw_payload: sent,
-  });
-  await supabase
-    .from('whatsapp_conversations')
-    .update({ last_message_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq('id', conversation.id);
+  return handled ? 'processed' as const : 'ignored' as const;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'GET') {
     const url = new URL(req.url);
-    const mode = url.searchParams.get('hub.mode');
-    const token = url.searchParams.get('hub.verify_token');
-    const challenge = url.searchParams.get('hub.challenge');
-    if (mode === 'subscribe' && VERIFY_TOKEN && token === VERIFY_TOKEN) {
-      return new Response(challenge ?? '', { status: 200 });
+    const mode = url.searchParams.get('hub.mode') ?? url.searchParams.get('hub[mode]');
+    const token = url.searchParams.get('hub.verify_token') ?? url.searchParams.get('hub[verify_token]');
+    const challenge = url.searchParams.get('hub.challenge') ?? url.searchParams.get('hub[challenge]');
+
+    if (mode === 'subscribe' && VERIFY_TOKEN && token === VERIFY_TOKEN && challenge !== null) {
+      return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
     }
-    return new Response('forbidden', { status: 403 });
+    if (url.searchParams.has('hub.mode') || url.searchParams.has('hub[mode]')) {
+      return new Response('Forbidden', { status: 403 });
+    }
+    return json({
+      ready: !!db && !!VERIFY_TOKEN && !!APP_SECRET && !!PHONE_NUMBER_ID,
+      signatureVerification: !!APP_SECRET,
+      verificationTokenConfigured: !!VERIFY_TOKEN,
+      phoneNumberConfigured: !!PHONE_NUMBER_ID,
+      automaticReplies: false,
+    });
   }
 
-  if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
+  if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  if (!db || !VERIFY_TOKEN || !APP_SECRET) return new Response('Webhook not configured', { status: 503 });
 
   const raw = await req.text();
+  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) return new Response('Payload too large', { status: 413 });
   if (!(await validMetaSignature(raw, req.headers.get('x-hub-signature-256')))) {
-    return new Response('invalid signature', { status: 401 });
+    return new Response('Invalid signature', { status: 401 });
   }
 
+  let payload: any;
   try {
-    const payload = JSON.parse(raw || '{}');
-    for (const entry of payload.entry ?? []) {
-      for (const change of entry.changes ?? []) {
-        if (change.field !== 'messages') continue;
-        const value = change.value ?? {};
-        for (const status of value.statuses ?? []) await processStatus(status);
-        for (const message of value.messages ?? []) await processInbound(value, message);
+    payload = JSON.parse(raw || '{}');
+  } catch {
+    return new Response('Invalid JSON', { status: 400 });
+  }
+
+  const info = eventInfo(payload);
+  const hash = await sha256(raw);
+  try {
+    const shouldProcess = await openEvent(hash, payload, info);
+    if (!shouldProcess) return new Response('EVENT_RECEIVED', { status: 200 });
+
+    try {
+      const state = await processPayload(payload, info.changes);
+      await finishEvent(hash, state);
+      return new Response('EVENT_RECEIVED', { status: 200 });
+    } catch (error) {
+      console.error('WhatsApp webhook persistence error:', error instanceof Error ? error.message : 'unknown error');
+      try {
+        await finishEvent(hash, 'failed', 'Falha ao salvar os dados do evento.');
+      } catch (loggingError) {
+        console.error('WhatsApp webhook audit update failed:', loggingError instanceof Error ? loggingError.message : 'unknown error');
       }
+      return new Response('Temporary persistence failure', { status: 500 });
     }
-    return json({ ok: true });
   } catch (error) {
-    console.error('whatsapp-webhook', error);
-    // A Meta não deve ficar reenviando indefinidamente por uma falha interna de IA.
-    return json({ ok: false, error: String(error) }, 200);
+    console.error('WhatsApp webhook audit failure:', error instanceof Error ? error.message : 'unknown error');
+    return new Response('Temporary persistence failure', { status: 500 });
   }
 });

@@ -1,179 +1,62 @@
-# GM Estética — Ativação do WhatsApp oficial
+# WhatsApp Business — integração com o CRM GM
 
 ## Estado atual
 
-O código da integração está preparado no repositório, mas a ativação real depende de duas etapas externas:
+O projeto Supabase de produção é \`btmbtnsoszsypuvongzq\`. A migration de ingestão foi aplicada em 23/09/2026. O webhook está publicado com validação de assinatura, registro idempotente dos eventos e respostas automáticas desligadas.
 
-1. aplicar a migration e publicar as Edge Functions no Supabase;
-2. criar/configurar o aplicativo no Meta for Developers e obter as credenciais oficiais do WhatsApp Cloud API.
+O número continua no WhatsApp Business do celular. A integração do sistema não migra nem desconecta o número. A coexistência, a verificação da empresa e a assinatura dos campos de webhook ainda precisam ser concluídas no painel da Meta.
 
-A resposta automática começa **desligada por padrão** (`auto_reply_enabled = false`).
+## O que o sistema grava
 
-Projeto Supabase oficial do Painel GM: `btmbtnsoszsypuvongzq`.
+- Cada POST válido da Meta é arquivado em \`public.whatsapp_webhook_events\`, incluindo o payload original, tipo de evento, conta/número e estado de processamento.
+- Mensagens recebidas, mensagens enviadas pelo app (ecos), mensagens de histórico e status são gravados em \`public.whatsapp_messages\` e vinculados ao CRM em \`public.lead_interactions\`.
+- Contatos recebidos ou atualizados pelo sync são gravados em \`public.whatsapp_contacts\`; contatos removidos deixam de aparecer nessa lista, e o evento de remoção fica arquivado.
+- IDs de mensagem e hash do evento impedem duplicação em reenvios. Falhas de gravação respondem HTTP 500 para a Meta tentar novamente.
+- Eventos de outros tipos continuam arquivados no payload para investigação.
 
-Release preparada para produção do painel em 07/09/2026.
+A tela do CRM forma as conversas pelo telefone usando o modelo que já existe no banco. Não depende das tabelas \`whatsapp_conversations\` nem \`whatsapp_settings\`.
 
----
+### Anexos
 
-## 1. Arquivos preparados
+O texto, tipo, legenda/nome e payload com metadados e identificador de cada anexo são armazenados. Os arquivos binários de fotos, áudios, vídeos e documentos ainda não são copiados para o Storage do Supabase.
 
-- `supabase/migrations/20260907200000_whatsapp_integration_foundation.sql`
-- `supabase/functions/whatsapp-webhook/index.ts`
-- `supabase/functions/whatsapp-send/index.ts`
-- `supabase/functions/whatsapp-template/index.ts`
+### Respostas automáticas
 
-O webhook recebe mensagens, salva histórico, respeita handoff humano e usa a memória já registrada em `ai_training_examples` para gerar respostas via Gemini.
+A função não chama Gemini nem envia respostas automáticas. As respostas podem continuar sendo feitas pela Meta AI no WhatsApp Business do celular. A tela do CRM permite envio manual pela Cloud API quando a conexão estiver ativa.
 
----
+## Configuração necessária na Meta
 
-## 2. Secrets necessários no Supabase
+O webhook recebe chamadas em:
 
-Em **Supabase > Project Settings > Edge Functions > Secrets**, adicionar:
+\`https://btmbtnsoszsypuvongzq.supabase.co/functions/v1/whatsapp-webhook\`
 
-- `WHATSAPP_ACCESS_TOKEN` — token permanente da Meta. Nunca colocar no frontend.
-- `WHATSAPP_PHONE_NUMBER_ID` — Phone Number ID da tela WhatsApp API Setup.
-- `WHATSAPP_BUSINESS_ACCOUNT_ID` — WABA ID.
-- `WHATSAPP_VERIFY_TOKEN` — texto secreto escolhido pela GM para validar o webhook.
-- `META_APP_SECRET` — App Secret do aplicativo Meta.
-- `WHATSAPP_API_VERSION` — opcional; ex.: `v23.0`.
-- `GEMINI_API_KEY` — já existe no projeto; manter.
+No aplicativo e na conta WhatsApp Business corretos:
 
-Também são usados automaticamente pelo Supabase:
+1. Conclua a verificação da empresa e o onboarding de coexistência de WhatsApp Business App.
+2. Mantenha o número conectado ao WhatsApp Business no celular; não escolha um fluxo que transfira o número e desconecte o aplicativo.
+3. Configure a URL acima e use como Verify Token o segredo \`WHATSAPP_VERIFY_TOKEN\` (ou \`META_VERIFY_TOKEN\`) configurado no Supabase.
+4. Assine os campos \`messages\`, \`message_echoes\`, \`smb_message_echoes\`, \`history\` e \`smb_app_state_sync\` no WABA/número que receberá os eventos.
+5. Habilite o compartilhamento de histórico no onboarding, se quiser que a Meta envie mensagens anteriores e se a conta der esse consentimento.
+6. Envie uma mensagem de teste, responda pelo app e confira se entram eventos \`messages\` e \`smb_message_echoes\`; consulte a tela WhatsApp do CRM.
 
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+\`messages\` traz mensagens recebidas e estados de entrega/leitura. \`smb_message_echoes\` é o campo necessário para receber ecos das mensagens enviadas pelo WhatsApp Business App ou dispositivos vinculados após coexistência; \`smb_app_state_sync\` sincroniza atualizações de contatos. O evento \`history\` depende do fluxo e do compartilhamento de histórico oferecido pela Meta.
 
----
+## Secrets no Supabase
 
-## 3. Aplicar banco
+A Edge Function lê:
 
-No SQL Editor do projeto **btmbtnsoszsypuvongzq**, executar o arquivo:
+- \`WHATSAPP_VERIFY_TOKEN\` (ou \`META_VERIFY_TOKEN\`)
+- \`WHATSAPP_APP_SECRET\` (ou \`META_APP_SECRET\`)
+- \`WHATSAPP_PHONE_NUMBER_ID\`
+- \`WHATSAPP_ACCESS_TOKEN\`
+- \`SUPABASE_URL\` e \`SUPABASE_SERVICE_ROLE_KEY\` (fornecidos pelo Supabase)
 
-`supabase/migrations/20260907200000_whatsapp_integration_foundation.sql`
+A assinatura \`x-hub-signature-256\` é obrigatória. A função rejeita POST sem assinatura válida. O service role existe somente no lado servidor. Nunca coloque token Meta nem service role em variável \`VITE_*\`.
 
-Ele cria:
+## Persistência e visibilidade
 
-- `whatsapp_contacts`
-- `whatsapp_conversations`
-- `whatsapp_messages`
-- `whatsapp_settings`
+As tabelas de mensagens, contatos e auditoria têm RLS. Usuários autenticados com papel \`admin\` ou \`staff\` podem consultar a tela; a função usa service role para gravar webhooks. A tabela de auditoria deve ser tratada como dado sensível porque contém o payload recebido da Meta.
 
-A resposta automática fica desligada inicialmente.
+## Limite da conexão
 
----
-
-## 4. Publicar Edge Functions
-
-### whatsapp-webhook
-
-Publicar com JWT desativado, porque a Meta chama o endpoint sem login do Supabase. A função faz validação própria pelo Verify Token e, quando `META_APP_SECRET` estiver configurado, pela assinatura `x-hub-signature-256`.
-
-Endpoint esperado:
-
-`https://btmbtnsoszsypuvongzq.supabase.co/functions/v1/whatsapp-webhook`
-
-### whatsapp-send
-
-Publicar com JWT **ativado**. Ela serve para envio manual pelo painel depois que o Auth real for restaurado.
-
-### whatsapp-template
-
-Publicar com JWT **ativado** para disparos por templates oficiais aprovados pela Meta.
-
----
-
-## 5. Configuração no Meta for Developers
-
-1. Criar/abrir o aplicativo da GM.
-2. Adicionar o produto **WhatsApp**.
-3. Abrir **WhatsApp > API Setup**.
-4. Guardar:
-   - Phone Number ID
-   - WhatsApp Business Account ID
-5. Criar token permanente pelo Business Manager/System User para produção.
-6. Abrir **WhatsApp > Configuration > Webhooks**.
-7. Callback URL:
-   `https://btmbtnsoszsypuvongzq.supabase.co/functions/v1/whatsapp-webhook`
-8. Verify Token: exatamente o mesmo valor salvo como `WHATSAPP_VERIFY_TOKEN` no Supabase.
-9. Assinar o campo/evento `messages`.
-10. Fazer teste primeiro com o número de teste da Meta.
-
----
-
-## 6. Fluxo implementado
-
-Quando uma mensagem chega:
-
-1. Meta chama `whatsapp-webhook`.
-2. O contato é salvo/atualizado.
-3. Uma conversa é criada ou reutilizada.
-4. A mensagem é persistida em `whatsapp_messages`.
-5. Se houver pedido por humano (`atendente`, `humano`, `recepção`, `falar com a doutora` etc.), a conversa vira `human` e a IA é desligada naquela conversa.
-6. Se `auto_reply_enabled = false`, nada automático é enviado.
-7. Se estiver ligado, a função consulta exemplos de treinamento da GM, histórico recente e Gemini.
-8. A resposta é enviada pela API oficial da Meta e também salva no banco.
-9. Status de entrega/leitura recebidos da Meta atualizam a mensagem salva.
-
----
-
-## 7. Como ligar a resposta automática depois dos testes
-
-Somente depois de validar recebimento e envio manual:
-
-```sql
-update public.whatsapp_settings
-set auto_reply_enabled = true,
-    updated_at = now()
-where id = 1;
-```
-
-Para desligar imediatamente:
-
-```sql
-update public.whatsapp_settings
-set auto_reply_enabled = false,
-    updated_at = now()
-where id = 1;
-```
-
----
-
-## 8. Handoff humano
-
-A conversa pode assumir estes estados:
-
-- `open` — fluxo normal;
-- `human` — equipe assumiu, IA desativada;
-- `closed` — conversa encerrada.
-
-Quando a cliente pede uma pessoa, a função muda automaticamente para `human`.
-
----
-
-## 9. Segurança antes do número real
-
-Antes de colocar o número oficial da clínica em produção:
-
-- restaurar Auth real do painel;
-- publicar `whatsapp-send` com JWT ligado;
-- restringir acesso às conversas a admin/staff;
-- manter Access Token somente em Secrets;
-- configurar `META_APP_SECRET` para validar assinatura dos webhooks;
-- nunca colocar service role ou token Meta em `VITE_*`;
-- validar tudo com número de teste da Meta primeiro.
-
----
-
-## 10. Templates para mensagens iniciadas pela clínica
-
-Para mensagens fora da janela normal de atendimento, criar e aprovar templates na Meta, por exemplo:
-
-- confirmação de consulta;
-- lembrete 24h;
-- lembrete 1h/2h;
-- reagendamento;
-- aniversário;
-- retorno de procedimento;
-- reativação de paciente/lead.
-
-Esses templates são uma etapa posterior ao recebimento/resposta normal do webhook.
+Publicar o webhook prepara o destino, mas não assina automaticamente os campos da Meta nem conclui coexistência. Até a Meta enviar o primeiro evento, a tela mostrará “Ainda não chegou nenhum evento da Meta”. A conexão da Cloud API exibida no painel confirma acesso à API, mas não prova que cada assinatura de webhook esteja ativa.

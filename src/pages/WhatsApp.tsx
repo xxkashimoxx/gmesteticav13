@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MessageCircle, ShieldCheck, Bot, UserRound, Copy, RefreshCw, Send, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  Loader2,
+  MessageCircle,
+  Phone,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,18 +22,453 @@ import { supabase } from '@/integrations/supabase/client';
 const db = supabase as any;
 const WEBHOOK_URL = 'https://btmbtnsoszsypuvongzq.supabase.co/functions/v1/whatsapp-webhook';
 
-type Conversation = { id:string; status:'open'|'human'|'closed'; ai_enabled:boolean; last_message_at:string|null; whatsapp_contacts?:{wa_id?:string;display_name?:string|null}|null };
-type Message = { id:string; sender:'client'|'ai'|'human'|'system'; body:string|null; status:string|null; created_at:string };
+type Message = {
+  id: string;
+  provider_id: string | null;
+  phone: string;
+  direction: 'in' | 'out';
+  body: string;
+  status: string;
+  lead_id: string | null;
+  sender: string;
+  message_type: string;
+  created_at: string;
+  provider_at: string | null;
+};
+
+type Contact = {
+  id: string;
+  wa_id: string;
+  phone: string;
+  display_name: string | null;
+  lead_id: string | null;
+};
+
+type WebhookEvent = {
+  event_type: string;
+  processing_status: string;
+  received_at: string;
+  processing_error: string | null;
+};
+
+type Lead = { id: string; name: string; phone: string | null };
+
+type Thread = {
+  key: string;
+  phone: string;
+  name: string;
+  leadId: string | null;
+  latest: Message;
+  messages: Message[];
+};
+
+function phoneKey(value: unknown) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  return digits.length === 10 || digits.length === 11 ? '55' + digits : digits;
+}
+
+function phoneLabel(value: string) {
+  const digits = phoneKey(value);
+  return digits ? '+' + digits : 'Telefone indisponível';
+}
+
+function messageTime(message: Message) {
+  const value = message.provider_at || message.created_at;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? message.created_at : date.toISOString();
+}
+
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    received: 'Recebida',
+    sending: 'Enviando',
+    accepted: 'Aceita pela Meta',
+    sent: 'Enviada',
+    delivered: 'Entregue',
+    read: 'Lida',
+    failed: 'Falhou',
+    unknown: 'Sem confirmação',
+    processed: 'Processado',
+    ignored: 'Arquivado',
+  };
+  return labels[status] || status;
+}
 
 export default function WhatsApp() {
- const [loading,setLoading]=useState(true),[backendReady,setBackendReady]=useState(false),[settings,setSettings]=useState<any>(null),[conversations,setConversations]=useState<Conversation[]>([]),[selected,setSelected]=useState<string|null>(null),[messages,setMessages]=useState<Message[]>([]),[draft,setDraft]=useState(''),[sending,setSending]=useState(false);
- async function load(){setLoading(true);const [s,c]=await Promise.all([db.from('whatsapp_settings').select('*').eq('id',1).maybeSingle(),db.from('whatsapp_conversations').select('id,status,ai_enabled,last_message_at,whatsapp_contacts!inner(wa_id,display_name)').order('last_message_at',{ascending:false})]);if(s.error||c.error){setBackendReady(false);setSettings(null);setConversations([]);setLoading(false);return}setBackendReady(true);setSettings(s.data);setConversations((c.data??[]) as Conversation[]);if(!selected&&c.data?.[0]?.id)setSelected(c.data[0].id);setLoading(false)}
- async function loadMessages(id:string){const {data,error}=await db.from('whatsapp_messages').select('id,sender,body,status,created_at').eq('conversation_id',id).order('created_at',{ascending:true}).limit(200);if(!error)setMessages((data??[]) as Message[])}
- useEffect(()=>{load()},[]);useEffect(()=>{selected?loadMessages(selected):setMessages([])},[selected]);
- const active=useMemo(()=>conversations.find(c=>c.id===selected)??null,[conversations,selected]);const connected=Boolean(settings?.phone_number_id||import.meta.env.VITE_WHATSAPP_PHONE_NUMBER_ID);
- async function toggleGlobal(v:boolean){const {error}=await db.from('whatsapp_settings').update({auto_reply_enabled:v,updated_at:new Date().toISOString()}).eq('id',1);if(error)return toast.error('Não foi possível alterar',{description:error.message});setSettings((s:any)=>({...s,auto_reply_enabled:v}));toast.success(v?'Resposta automática ligada':'Resposta automática desligada')}
- async function setConversationMode(mode:'human'|'ai'){if(!active)return;const patch=mode==='human'?{status:'human',ai_enabled:false,updated_at:new Date().toISOString()}:{status:'open',ai_enabled:true,updated_at:new Date().toISOString()};const {error}=await db.from('whatsapp_conversations').update(patch).eq('id',active.id);if(error)return toast.error('Não foi possível alterar a conversa',{description:error.message});await load()}
- async function sendManual(){if(!active||!draft.trim())return;setSending(true);const {error}=await supabase.functions.invoke('whatsapp-send',{body:{conversationId:active.id,message:draft.trim()}});setSending(false);if(error)return toast.error('Falha ao enviar',{description:error.message});setDraft('');await Promise.all([load(),loadMessages(active.id)])}
- async function copyWebhook(){await navigator.clipboard.writeText(WEBHOOK_URL);toast.success('Webhook copiado')}
- return <div className="p-4 md:p-6 space-y-5"><div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3"><div><h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2"><MessageCircle className="w-7 h-7 text-[#25D366]"/> WhatsApp</h1><p className="text-sm text-muted-foreground">Central oficial de conversas, IA e atendimento humano.</p></div><Button variant="outline" onClick={load} disabled={loading}><RefreshCw className="w-4 h-4 mr-2"/>Atualizar</Button></div>{!backendReady&&!loading&&<Card className="border-warning/40 bg-warning/5"><CardContent className="p-4 flex gap-3"><AlertTriangle className="w-5 h-5 text-warning"/><div><p className="font-semibold">Base do WhatsApp ainda não aplicada no Supabase</p><p className="text-sm text-muted-foreground">Falta aplicar a migration e publicar as Edge Functions no projeto GM.</p></div></CardContent></Card>}<div className="grid grid-cols-1 md:grid-cols-3 gap-4"><Card><CardHeader className="pb-2"><CardTitle className="text-base">Backend</CardTitle></CardHeader><CardContent className="flex justify-between"><span className="text-sm text-muted-foreground">Banco + funções</span><Badge variant={backendReady?'default':'secondary'}>{backendReady?'Pronto':'Pendente'}</Badge></CardContent></Card><Card><CardHeader className="pb-2"><CardTitle className="text-base">Meta WhatsApp</CardTitle></CardHeader><CardContent className="flex justify-between"><span className="text-sm text-muted-foreground">Número oficial/API</span><Badge variant={connected?'default':'secondary'}>{connected?'Configurado':'Pendente'}</Badge></CardContent></Card><Card><CardHeader className="pb-2"><CardTitle className="text-base">IA automática</CardTitle></CardHeader><CardContent className="flex justify-between"><span className="text-sm text-muted-foreground">Responder clientes</span><Switch checked={Boolean(settings?.auto_reply_enabled)} disabled={!backendReady||!connected} onCheckedChange={toggleGlobal}/></CardContent></Card></div><Card><CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"><div className="flex gap-3"><ShieldCheck className="w-5 h-5 text-primary"/><div><p className="font-semibold text-sm">Webhook oficial da Meta</p><p className="text-xs text-muted-foreground break-all">{WEBHOOK_URL}</p></div></div><Button variant="outline" size="sm" onClick={copyWebhook}><Copy className="w-4 h-4 mr-2"/>Copiar</Button></CardContent></Card><div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 min-h-[520px]"><Card><CardHeader><CardTitle className="text-base">Conversas</CardTitle></CardHeader><CardContent className="p-2">{conversations.length===0&&<p className="text-sm text-muted-foreground text-center py-10">Nenhuma conversa recebida ainda.</p>}{conversations.map(c=><button key={c.id} onClick={()=>setSelected(c.id)} className={`w-full text-left p-3 rounded-lg border ${selected===c.id?'border-primary bg-primary/5':'border-transparent hover:bg-muted/60'}`}><div className="flex justify-between"><p className="font-medium text-sm truncate">{c.whatsapp_contacts?.display_name||c.whatsapp_contacts?.wa_id||'Contato'}</p><Badge variant="secondary">{c.status==='human'?'Humano':c.ai_enabled?'IA':'Aberto'}</Badge></div></button>)}</CardContent></Card><Card className="flex flex-col"><CardHeader className="border-b"><div className="flex justify-between gap-3"><CardTitle className="text-base">{active?.whatsapp_contacts?.display_name||active?.whatsapp_contacts?.wa_id||'Selecione uma conversa'}</CardTitle>{active&&<div className="flex gap-2"><Button size="sm" variant="outline" onClick={()=>setConversationMode('human')}><UserRound className="w-4 h-4 mr-1"/>Assumir</Button><Button size="sm" variant="outline" onClick={()=>setConversationMode('ai')}><Bot className="w-4 h-4 mr-1"/>Devolver à IA</Button></div>}</div></CardHeader><CardContent className="p-4 flex-1 flex flex-col"><div className="flex-1 space-y-3 overflow-y-auto min-h-[300px]">{messages.map(m=><div key={m.id} className={`flex ${m.sender!=='client'?'justify-end':'justify-start'}`}><div className={`max-w-[82%] rounded-xl px-3 py-2 text-sm ${m.sender!=='client'?'bg-primary text-primary-foreground':'bg-muted'}`}><p className="whitespace-pre-wrap">{m.body}</p><p className="text-[10px] mt-1 opacity-75">{m.sender} · {new Date(m.created_at).toLocaleString('pt-BR')}</p></div></div>)}</div>{active&&<div className="pt-4 border-t mt-4 space-y-2"><Textarea value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Responder manualmente..." rows={2}/><div className="flex justify-end"><Button onClick={sendManual} disabled={sending||!draft.trim()}><Send className="w-4 h-4 mr-2"/>{sending?'Enviando...':'Enviar'}</Button></div></div>}</CardContent></Card></div></div>
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [events, setEvents] = useState<WebhookEvent[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [metaConnected, setMetaConnected] = useState<boolean | null>(null);
+  const [metaPhone, setMetaPhone] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+
+  async function loadDatabase(silent = false) {
+    if (!silent) setRefreshing(true);
+    const [messageResult, contactResult, eventResult] = await Promise.all([
+      db.from('whatsapp_messages')
+        .select('id,provider_id,phone,direction,body,status,lead_id,sender,message_type,created_at,provider_at')
+        .order('created_at', { ascending: false })
+        .limit(500),
+      db.from('whatsapp_contacts')
+        .select('id,wa_id,phone,display_name,lead_id', { count: 'exact' })
+        .order('updated_at', { ascending: false })
+        .limit(1000),
+      db.from('whatsapp_webhook_events')
+        .select('event_type,processing_status,received_at,processing_error')
+        .order('received_at', { ascending: false })
+        .limit(30),
+    ]);
+
+    const error = messageResult.error || contactResult.error || eventResult.error;
+    if (error) {
+      setBackendReady(false);
+      setBackendError(error.message || 'Não foi possível ler as tabelas do WhatsApp.');
+      setMessages([]);
+      setContacts([]);
+      setEvents([]);
+      setLeads([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    const nextMessages = (messageResult.data ?? []) as Message[];
+    const nextContacts = (contactResult.data ?? []) as Contact[];
+    const leadIds = [...new Set(nextMessages.map((message) => message.lead_id).filter(Boolean))] as string[];
+    const leadResult = leadIds.length
+      ? await db.from('leads').select('id,name,phone').in('id', leadIds)
+      : { data: [], error: null };
+
+    if (leadResult.error) {
+      setBackendReady(false);
+      setBackendError(leadResult.error.message || 'Não foi possível localizar os cadastros dos contatos.');
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    setMessages(nextMessages);
+    setContacts(nextContacts);
+    setEvents((eventResult.data ?? []) as WebhookEvent[]);
+    setLeads((leadResult.data ?? []) as Lead[]);
+    setBackendReady(true);
+    setBackendError(null);
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  async function loadMetaStatus() {
+    const { data, error } = await supabase.functions.invoke('whatsapp-status', { body: {} });
+    if (error || data?.error) {
+      setMetaConnected(false);
+      setMetaPhone(null);
+      return;
+    }
+    setMetaConnected(Boolean(data?.connected));
+    setMetaPhone(data?.phone ?? null);
+  }
+
+  useEffect(() => {
+    void loadDatabase();
+    void loadMetaStatus();
+    const timer = window.setInterval(() => void loadDatabase(true), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const threads = useMemo(() => {
+    const leadById = new Map(leads.map((lead) => [lead.id, lead]));
+    const contactByPhone = new Map(contacts.map((contact) => [phoneKey(contact.phone || contact.wa_id), contact]));
+    const grouped = new Map<string, Thread>();
+
+    for (const message of messages) {
+      const key = phoneKey(message.phone);
+      if (!key) continue;
+      const contact = contactByPhone.get(key);
+      const lead = message.lead_id ? leadById.get(message.lead_id) : null;
+      const thread = grouped.get(key);
+      if (thread) {
+        thread.messages.push(message);
+        if (!thread.leadId && message.lead_id) thread.leadId = message.lead_id;
+      } else {
+        grouped.set(key, {
+          key,
+          phone: message.phone,
+          name: contact?.display_name || lead?.name || phoneLabel(message.phone),
+          leadId: message.lead_id || contact?.lead_id || null,
+          latest: message,
+          messages: [message],
+        });
+      }
+    }
+
+    return [...grouped.values()].map((thread) => ({
+      ...thread,
+      messages: [...thread.messages].sort((a, b) =>
+        new Date(messageTime(a)).getTime() - new Date(messageTime(b)).getTime(),
+      ),
+    })).sort((a, b) =>
+      new Date(messageTime(b.latest)).getTime() - new Date(messageTime(a.latest)).getTime(),
+    );
+  }, [messages, contacts, leads]);
+
+  useEffect(() => {
+    if (!selected && threads.length) setSelected(threads[0].key);
+  }, [threads, selected]);
+
+  const active = threads.find((thread) => thread.key === selected) ?? null;
+  const failures = events.filter((event) => event.processing_status === 'failed').length;
+  const latestEvent = events[0] ?? null;
+
+  async function sendManual() {
+    if (!active || !active.leadId || !draft.trim()) return;
+    setSending(true);
+    const { data, error } = await supabase.functions.invoke('whatsapp-send', {
+      body: {
+        requestId: crypto.randomUUID(),
+        leadId: active.leadId,
+        message: draft.trim(),
+      },
+    });
+    setSending(false);
+    if (error || data?.error) {
+      toast.error('Não foi possível enviar', { description: data?.error || error?.message });
+      return;
+    }
+    setDraft('');
+    toast.success('Mensagem encaminhada para a Meta.');
+    await loadDatabase(true);
+  }
+
+  async function copyWebhook() {
+    try {
+      await navigator.clipboard.writeText(WEBHOOK_URL);
+      toast.success('Endereço do webhook copiado.');
+    } catch {
+      toast.error('Não foi possível copiar o endereço.');
+    }
+  }
+
+  return (
+    <div className="space-y-5 p-4 md:p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold md:text-3xl">
+            <MessageCircle className="h-7 w-7 text-[#25D366]" />
+            WhatsApp Business
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Mensagens, contatos sincronizados e eventos recebidos da Meta.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            void loadDatabase();
+            void loadMetaStatus();
+          }}
+          disabled={refreshing}
+        >
+          {refreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          Atualizar
+        </Button>
+      </div>
+
+      {backendError && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex gap-3 p-4">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <p className="font-semibold">Não foi possível carregar os dados do WhatsApp</p>
+              <p className="break-all text-sm text-muted-foreground">{backendError}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Webhook e banco</CardTitle></CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Persistência</span>
+            <Badge variant={backendReady ? 'default' : 'secondary'}>
+              {loading ? 'Verificando' : backendReady ? 'Pronto' : 'Indisponível'}
+            </Badge>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">API da Meta</CardTitle></CardHeader>
+          <CardContent className="flex items-center justify-between gap-2">
+            <span className="truncate text-sm text-muted-foreground">{metaPhone || 'Conexão API'}</span>
+            <Badge variant={metaConnected ? 'default' : 'secondary'}>
+              {metaConnected === null ? 'Verificando' : metaConnected ? 'Conectada' : 'Pendente'}
+            </Badge>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Contatos sincronizados</CardTitle></CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm text-muted-foreground"><Users className="h-4 w-4" />WhatsApp Business</span>
+            <span className="font-semibold">{contacts.length}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Eventos com erro</CardTitle></CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-sm text-muted-foreground"><AlertTriangle className="h-4 w-4" />Últimos 30</span>
+            <Badge variant={failures ? 'destructive' : 'secondary'}>{failures}</Badge>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex gap-3 p-4">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
+          <div className="space-y-1">
+            <p className="font-semibold text-sm">Respostas automáticas do sistema desligadas</p>
+            <p className="text-sm text-muted-foreground">
+              Você pode usar a Meta AI no WhatsApp Business do celular. O sistema registra os eventos recebidos e não responde clientes automaticamente.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {!loading && events.length === 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="flex gap-3 p-4">
+            <Clock3 className="h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-semibold text-sm">Ainda não chegou nenhum evento da Meta</p>
+              <p className="text-sm text-muted-foreground">
+                Depois de concluir a integração de coexistência, confirme a inscrição dos campos messages, smb_message_echoes, history e smb_app_state_sync na Meta.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {latestEvent && (
+        <Card>
+          <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm">Último evento: {latestEvent.event_type}</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(latestEvent.received_at).toLocaleString('pt-BR')} · {statusLabel(latestEvent.processing_status)}
+              </p>
+              {latestEvent.processing_error && (
+                <p className="mt-1 break-words text-xs text-destructive">{latestEvent.processing_error}</p>
+              )}
+            </div>
+            <Badge variant={latestEvent.processing_status === 'failed' ? 'destructive' : 'secondary'}>
+              {statusLabel(latestEvent.processing_status)}
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 gap-3">
+            <ShieldCheck className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0">
+              <p className="font-semibold text-sm">Webhook oficial da Meta</p>
+              <p className="break-all text-xs text-muted-foreground">{WEBHOOK_URL}</p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={copyWebhook}>
+            <Copy className="mr-2 h-4 w-4" />Copiar endereço
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="grid min-h-[560px] grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between text-base">
+              Conversas
+              <Badge variant="secondary">{threads.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[650px] space-y-1 overflow-y-auto p-2">
+            {threads.length === 0 && (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {loading ? 'Carregando conversas…' : 'As conversas recebidas aparecerão aqui.'}
+              </p>
+            )}
+            {threads.map((thread) => (
+              <button
+                key={thread.key}
+                onClick={() => setSelected(thread.key)}
+                className={'w-full rounded-lg border p-3 text-left ' + (selected === thread.key ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/60')}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium">{thread.name}</p>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(messageTime(thread.latest)).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{thread.latest.body || '[Mensagem sem texto]'}</p>
+                <p className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Phone className="h-3 w-3" />{phoneLabel(thread.phone)}
+                </p>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader className="border-b">
+            <CardTitle className="text-base">
+              {active ? active.name : 'Selecione uma conversa'}
+              {active && <span className="ml-2 text-sm font-normal text-muted-foreground">{phoneLabel(active.phone)}</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col p-4">
+            <div className="min-h-[320px] flex-1 space-y-3 overflow-y-auto">
+              {active?.messages.map((message) => (
+                <div key={message.id} className={'flex ' + (message.direction === 'out' ? 'justify-end' : 'justify-start')}>
+                  <div className={'max-w-[82%] rounded-xl px-3 py-2 text-sm ' + (message.direction === 'out' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                    <p className="whitespace-pre-wrap break-words">{message.body || '[Mensagem sem texto]'}</p>
+                    <p className="mt-1 text-[10px] opacity-75">
+                      {message.direction === 'out' ? 'Enviada' : 'Recebida'}{message.message_type !== 'text' ? ' · ' + message.message_type : ''}
+                      {' · '}{statusLabel(message.status)}
+                      {' · '}{new Date(messageTime(message)).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {!active && <p className="py-12 text-center text-sm text-muted-foreground">Selecione uma conversa para ver as mensagens.</p>}
+            </div>
+
+            {active && (
+              <div className="mt-4 space-y-2 border-t pt-4">
+                {!active.leadId && (
+                  <p className="text-xs text-muted-foreground">Esta conversa ainda não está vinculada a um cadastro que permita envio pelo sistema.</p>
+                )}
+                <Textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  placeholder="Responder manualmente pelo sistema…"
+                  rows={2}
+                  disabled={!active.leadId || sending}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={sendManual} disabled={!active.leadId || sending || !draft.trim()}>
+                    {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    {sending ? 'Enviando…' : 'Enviar'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
