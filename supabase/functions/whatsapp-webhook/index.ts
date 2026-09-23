@@ -5,7 +5,11 @@ const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN') ?? Deno.env.get('META_VERIFY_TOKEN') ?? '';
 const APP_SECRET = Deno.env.get('WHATSAPP_APP_SECRET') ?? Deno.env.get('META_APP_SECRET') ?? '';
 const PHONE_NUMBER_ID = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID') ?? '';
+const ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? '';
+const API_VERSION = Deno.env.get('WHATSAPP_API_VERSION') ?? 'v23.0';
+const MEDIA_BUCKET = 'whatsapp-media';
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
+const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 
 const db = SUPABASE_URL && SERVICE_ROLE_KEY
   ? createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
@@ -80,6 +84,119 @@ function bodyFromMessage(message: any): string {
   return '[Mensagem do tipo ' + type + ']';
 }
 
+const MEDIA_TYPES = new Set(['image', 'video', 'audio', 'voice', 'document', 'sticker']);
+
+function mediaExtension(mimeType: string) {
+  const mime = mimeType.toLowerCase().split(';')[0].trim();
+  const known: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'video/mp4': 'mp4',
+    'audio/ogg': 'ogg',
+    'audio/opus': 'opus',
+    'audio/mpeg': 'mp3',
+    'audio/mp4': 'm4a',
+    'application/pdf': 'pdf',
+    'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  };
+  return known[mime] ?? 'bin';
+}
+
+async function archiveMedia(message: any, providerId: string) {
+  const type = String(message?.type ?? '').toLowerCase();
+  if (!MEDIA_TYPES.has(type)) return message;
+
+  const media = message?.[type] ?? (type === 'voice' ? message?.audio : null);
+  const mediaId = String(media?.id ?? '').trim();
+  const base = { ...message };
+  if (!mediaId) {
+    base.whatsapp_media = { status: 'metadata_only', reason: 'media_id_missing' };
+    return base;
+  }
+
+  const declaredSize = Number(media?.file_size ?? 0);
+  if (declaredSize > MAX_MEDIA_BYTES) {
+    base.whatsapp_media = {
+      status: 'too_large',
+      media_id: mediaId,
+      mime_type: media?.mime_type ?? null,
+      size_bytes: declaredSize,
+      max_bytes: MAX_MEDIA_BYTES,
+      filename: media?.filename ?? null,
+    };
+    return base;
+  }
+  if (!ACCESS_TOKEN) throw new Error('WHATSAPP_ACCESS_TOKEN não está configurado para baixar anexos.');
+
+  const metadataResponse = await fetch(
+    `https://graph.facebook.com/${API_VERSION}/${encodeURIComponent(mediaId)}`,
+    { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` }, signal: AbortSignal.timeout(20000) },
+  );
+  const metadata = await metadataResponse.json().catch(() => ({}));
+  if (!metadataResponse.ok || typeof metadata?.url !== 'string') {
+    throw new Error('A Meta não disponibilizou a URL temporária da mídia.');
+  }
+
+  const mediaUrl = new URL(metadata.url);
+  if (mediaUrl.protocol !== 'https:') throw new Error('A Meta retornou uma URL de mídia insegura.');
+
+  const fileResponse = await fetch(mediaUrl, {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!fileResponse.ok) throw new Error('Não foi possível baixar a mídia da Meta.');
+  const responseSize = Number(fileResponse.headers.get('content-length') ?? 0);
+  if (responseSize > MAX_MEDIA_BYTES) {
+    base.whatsapp_media = {
+      status: 'too_large',
+      media_id: mediaId,
+      mime_type: metadata?.mime_type ?? media?.mime_type ?? null,
+      size_bytes: responseSize,
+      max_bytes: MAX_MEDIA_BYTES,
+      filename: media?.filename ?? null,
+    };
+    return base;
+  }
+
+  const bytes = new Uint8Array(await fileResponse.arrayBuffer());
+  if (bytes.byteLength > MAX_MEDIA_BYTES) {
+    base.whatsapp_media = {
+      status: 'too_large',
+      media_id: mediaId,
+      mime_type: metadata?.mime_type ?? media?.mime_type ?? null,
+      size_bytes: bytes.byteLength,
+      max_bytes: MAX_MEDIA_BYTES,
+      filename: media?.filename ?? null,
+    };
+    return base;
+  }
+
+  const mimeType = String(metadata?.mime_type ?? media?.mime_type ?? fileResponse.headers.get('content-type') ?? 'application/octet-stream');
+  const objectPath = `media/${await sha256(mediaId)}.${mediaExtension(mimeType)}`;
+  const { error } = await db!.storage.from(MEDIA_BUCKET).upload(objectPath, bytes, {
+    contentType: mimeType,
+    cacheControl: '31536000',
+    upsert: true,
+  });
+  if (error) throw new Error('Não foi possível guardar a mídia no armazenamento privado.');
+
+  base.whatsapp_media = {
+    status: 'stored',
+    bucket: MEDIA_BUCKET,
+    path: objectPath,
+    media_id: mediaId,
+    mime_type: mimeType,
+    size_bytes: bytes.byteLength,
+    filename: media?.filename ?? null,
+    caption: media?.caption ?? null,
+  };
+  return base;
+}
+
 async function saveMessage(args: {
   id: unknown;
   phone: unknown;
@@ -96,6 +213,9 @@ async function saveMessage(args: {
   const name = String(args.name ?? '').trim().slice(0, 160) || null;
   const type = String(args.type ?? 'unknown').slice(0, 80);
   const body = String(args.body ?? bodyFromMessage(args.raw)).slice(0, 4096) || '[Mensagem WhatsApp]';
+  const raw = args.raw && typeof args.raw === 'object' && !Array.isArray(args.raw)
+    ? await archiveMedia(args.raw, id)
+    : args.raw;
   const { error } = await db!.rpc('gm_whatsapp_ingest_message', {
     p_provider_id: id,
     p_phone: phone,
@@ -104,7 +224,7 @@ async function saveMessage(args: {
     p_body: body,
     p_status: args.direction === 'in' ? 'received' : 'sent',
     p_message_type: type,
-    p_raw_payload: args.raw,
+    p_raw_payload: raw,
     p_at: toIso(args.timestamp),
   });
   if (error) throw new Error('Não foi possível salvar a mensagem WhatsApp.');
@@ -356,6 +476,8 @@ Deno.serve(async (req: Request) => {
       signatureVerification: !!APP_SECRET,
       verificationTokenConfigured: !!VERIFY_TOKEN,
       phoneNumberConfigured: !!PHONE_NUMBER_ID,
+      mediaArchivingConfigured: !!ACCESS_TOKEN,
+      mediaStorageBucketConfigured: true,
       automaticReplies: false,
     });
   }

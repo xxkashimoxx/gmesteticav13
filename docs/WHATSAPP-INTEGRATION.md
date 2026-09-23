@@ -18,7 +18,7 @@ A tela do CRM forma as conversas pelo telefone usando o modelo que já existe no
 
 ### Anexos
 
-O texto, tipo, legenda/nome e payload com metadados e identificador de cada anexo são armazenados. Os arquivos binários de fotos, áudios, vídeos e documentos ainda não são copiados para o Storage do Supabase.
+Quando a mensagem contém um ID de mídia, o webhook baixa o arquivo pela API da Meta e o guarda no bucket privado `whatsapp-media`. A tela exibe imagens, áudios, vídeos e documentos por links assinados de cinco minutos, somente para usuários autenticados com papel `admin` ou `staff`. O limite de arquivo é 50 MB; acima disso, o sistema preserva mensagem e metadados, mas não o binário. Falhas no download ou armazenamento deixam o evento como falho e respondem HTTP 500 para permitir nova tentativa da Meta.
 
 ### Respostas automáticas
 
@@ -48,14 +48,15 @@ A Edge Function lê:
 - `WHATSAPP_VERIFY_TOKEN` (ou `META_VERIFY_TOKEN`)
 - `WHATSAPP_APP_SECRET` (ou `META_APP_SECRET`)
 - `WHATSAPP_PHONE_NUMBER_ID`
-- `WHATSAPP_ACCESS_TOKEN`
+- `WHATSAPP_ACCESS_TOKEN` (necessário para arquivar anexos)
+- `WHATSAPP_API_VERSION` (opcional; padrão `v23.0`)
 - `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` (fornecidos pelo Supabase)
 
 A assinatura `x-hub-signature-256` é obrigatória. A função rejeita POST sem assinatura válida. O service role existe somente no lado servidor. Nunca coloque token Meta nem service role em variável `VITE_*`.
 
 ## Persistência e visibilidade
 
-As tabelas de mensagens, contatos e auditoria têm RLS. Usuários autenticados com papel `admin` ou `staff` podem consultar a tela; a função usa service role para gravar webhooks. A tabela de auditoria deve ser tratada como dado sensível porque contém o payload recebido da Meta.
+As tabelas de mensagens, contatos e auditoria têm RLS. Usuários autenticados com papel `admin` ou `staff` podem consultar a tela; a função usa service role para gravar webhooks. A tabela de auditoria deve ser tratada como dado sensível porque contém o payload recebido da Meta. O bucket privado de anexos permite leitura apenas a `admin` e `staff`; os uploads são feitos pela função no servidor.
 
 ## Limite da conexão
 

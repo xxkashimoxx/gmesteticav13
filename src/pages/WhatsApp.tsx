@@ -34,6 +34,8 @@ type Message = {
   message_type: string;
   created_at: string;
   provider_at: string | null;
+  raw_payload: Record<string, any> | null;
+  mediaUrl?: string | null;
 };
 
 type Contact = {
@@ -113,7 +115,7 @@ export default function WhatsApp() {
     if (!silent) setRefreshing(true);
     const [messageResult, contactResult, eventResult] = await Promise.all([
       db.from('whatsapp_messages')
-        .select('id,provider_id,phone,direction,body,status,lead_id,sender,message_type,created_at,provider_at')
+        .select('id,provider_id,phone,direction,body,status,lead_id,sender,message_type,created_at,provider_at,raw_payload')
         .order('created_at', { ascending: false })
         .limit(500),
       db.from('whatsapp_contacts')
@@ -141,6 +143,24 @@ export default function WhatsApp() {
 
     const nextMessages = (messageResult.data ?? []) as Message[];
     const nextContacts = (contactResult.data ?? []) as Contact[];
+    const mediaPaths = [...new Set(nextMessages
+      .map((message) => String(message.raw_payload?.whatsapp_media?.path ?? '').trim())
+      .filter(Boolean))];
+    const signedByPath = new Map<string, string>();
+    if (mediaPaths.length) {
+      const { data: signedFiles, error: signedError } = await supabase.storage
+        .from('whatsapp-media')
+        .createSignedUrls(mediaPaths, 300);
+      if (!signedError) {
+        for (const file of signedFiles ?? []) {
+          if (file.path && file.signedUrl) signedByPath.set(file.path, file.signedUrl);
+        }
+      }
+    }
+    const messagesWithMedia = nextMessages.map((message) => ({
+      ...message,
+      mediaUrl: signedByPath.get(String(message.raw_payload?.whatsapp_media?.path ?? '')) ?? null,
+    }));
     const leadIds = [...new Set(nextMessages.map((message) => message.lead_id).filter(Boolean))] as string[];
     const leadResult = leadIds.length
       ? await db.from('leads').select('id,name,phone').in('id', leadIds)
@@ -154,7 +174,7 @@ export default function WhatsApp() {
       return;
     }
 
-    setMessages(nextMessages);
+    setMessages(messagesWithMedia);
     setContacts(nextContacts);
     setEvents((eventResult.data ?? []) as WebhookEvent[]);
     setLeads((leadResult.data ?? []) as Lead[]);
@@ -431,10 +451,32 @@ export default function WhatsApp() {
           </CardHeader>
           <CardContent className="flex flex-1 flex-col p-4">
             <div className="min-h-[320px] flex-1 space-y-3 overflow-y-auto">
-              {active?.messages.map((message) => (
+              {active?.messages.map((message) => {
+                const media = message.raw_payload?.whatsapp_media;
+                const mime = String(media?.mime_type ?? '').toLowerCase();
+                return (
                 <div key={message.id} className={'flex ' + (message.direction === 'out' ? 'justify-end' : 'justify-start')}>
                   <div className={'max-w-[82%] rounded-xl px-3 py-2 text-sm ' + (message.direction === 'out' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
                     <p className="whitespace-pre-wrap break-words">{message.body || '[Mensagem sem texto]'}</p>
+                    {message.mediaUrl && mime.startsWith('image/') && (
+                      <a href={message.mediaUrl} target="_blank" rel="noreferrer">
+                        <img src={message.mediaUrl} alt={String(media?.filename ?? 'Anexo do WhatsApp')} className="mt-2 max-h-80 rounded-lg object-contain" />
+                      </a>
+                    )}
+                    {message.mediaUrl && mime.startsWith('audio/') && (
+                      <audio className="mt-2 max-w-full" controls preload="none" src={message.mediaUrl}>Áudio do WhatsApp</audio>
+                    )}
+                    {message.mediaUrl && mime.startsWith('video/') && (
+                      <video className="mt-2 max-h-80 max-w-full rounded-lg" controls preload="metadata" src={message.mediaUrl}>Vídeo do WhatsApp</video>
+                    )}
+                    {message.mediaUrl && !mime.startsWith('image/') && !mime.startsWith('audio/') && !mime.startsWith('video/') && (
+                      <a className="mt-2 block underline" href={message.mediaUrl} target="_blank" rel="noreferrer">
+                        Abrir anexo{media?.filename ? ': ' + String(media.filename) : ''}
+                      </a>
+                    )}
+                    {media?.status === 'too_large' && (
+                      <p className="mt-2 text-xs opacity-80">Arquivo maior que 50 MB: os metadados foram salvos, mas o arquivo não foi arquivado.</p>
+                    )}
                     <p className="mt-1 text-[10px] opacity-75">
                       {message.direction === 'out' ? 'Enviada' : 'Recebida'}{message.message_type !== 'text' ? ' · ' + message.message_type : ''}
                       {' · '}{statusLabel(message.status)}
@@ -442,7 +484,8 @@ export default function WhatsApp() {
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
               {!active && <p className="py-12 text-center text-sm text-muted-foreground">Selecione uma conversa para ver as mensagens.</p>}
             </div>
 
