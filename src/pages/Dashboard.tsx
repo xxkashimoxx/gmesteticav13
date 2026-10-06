@@ -115,13 +115,13 @@ export default function Dashboard() {
             <CardTitle className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-accent" /> Métricas da landing page
             </CardTitle>
-            <span className="text-xs text-muted-foreground">Últimos 30 dias · contagem desde a ativação</span>
+            <span className="text-xs text-muted-foreground">Últimos 30 dias · após autorização de medição</span>
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard title="Acessos" value={landingMetrics?.pageViews.toLocaleString('pt-BR') ?? '—'} icon={Globe} />
           <StatCard title="Solicitações de agendamento" value={landingMetrics?.bookingRequests.toLocaleString('pt-BR') ?? '—'} icon={CalendarCheck} />
-          <StatCard title="Cliques nos botões" value={landingMetrics?.ctaClicks.toLocaleString('pt-BR') ?? '—'} icon={MousePointerClick} />
+          <StatCard title="Cliques em agendamento" value={landingMetrics?.ctaClicks.toLocaleString('pt-BR') ?? '—'} icon={MousePointerClick} />
           <StatCard title="Cliques no WhatsApp" value={landingMetrics?.whatsappClicks.toLocaleString('pt-BR') ?? '—'} icon={MessageCircle} />
         </CardContent>
         <p className="px-6 pb-4 text-xs text-muted-foreground">Solicitações abrem uma conversa no WhatsApp; não representam agendamentos confirmados.</p>
