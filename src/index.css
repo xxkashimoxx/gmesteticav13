@@ -25,15 +25,15 @@ All colors MUST be HSL.
     --primary-glow: 205 44% 21%;        /* Azul Petróleo */
 
     /* Secundário: Azul Gelo — leveza */
-    --secondary: 213 25% 88%;
-    --secondary-foreground: 213 53% 15%;
+    --secondary: 35 46% 91%;
+    --secondary-foreground: 213 53% 11%;
 
     --muted: 214 8% 88%;                /* Cinza Claro suave */
     --muted-foreground: 217 12% 38%;
 
-    /* Acento: Azul Sereno — calma */
-    --accent: 210 20% 52%;
-    --accent-foreground: 216 11% 96%;
+    /* Acento champagne da landing page */
+    --accent: 38 45% 60%;
+    --accent-foreground: 213 53% 11%;
 
     --destructive: 0 62% 42%;
     --destructive-foreground: 0 0% 100%;
@@ -46,12 +46,12 @@ All colors MUST be HSL.
 
     --border: 214 12% 82%;
     --input: 214 12% 82%;
-    --ring: 205 44% 21%;
+    --ring: 38 45% 60%;
 
     /* Gradientes — profundidade em azul */
     --gradient-primary: linear-gradient(135deg, hsl(213 53% 11%), hsl(205 44% 21%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(213 25% 96%));
-    --gradient-accent: linear-gradient(135deg, hsl(210 20% 52%), hsl(212 22% 72%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(35 33% 95%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 45% 60%), hsl(39 52% 82%));
 
     --shadow-card: 0 4px 12px -2px hsl(213 40% 15% / 0.10), 0 2px 4px -1px hsl(213 40% 15% / 0.05);
     --shadow-elevated: 0 12px 24px -6px hsl(213 40% 15% / 0.16), 0 4px 8px -2px hsl(213 40% 15% / 0.08);
@@ -62,12 +62,12 @@ All colors MUST be HSL.
 
     --sidebar-background: 213 53% 11%;      /* Azul Marinho */
     --sidebar-foreground: 213 25% 88%;      /* Azul Gelo */
-    --sidebar-primary: 210 20% 52%;         /* Azul Sereno */
-    --sidebar-primary-foreground: 216 11% 96%;
+    --sidebar-primary: 38 45% 60%;         /* Azul Sereno */
+    --sidebar-primary-foreground: 213 53% 11%;
     --sidebar-accent: 205 44% 21%;          /* Azul Petróleo */
     --sidebar-accent-foreground: 216 11% 96%;
     --sidebar-border: 205 30% 18%;
-    --sidebar-ring: 210 20% 52%;
+    --sidebar-ring: 38 45% 60%;
   }
 
   .dark {

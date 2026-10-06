@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Users, DollarSign, TrendingUp, Clock, Target, Flame } from 'lucide-react';
+import { CalendarDays, Users, DollarSign, TrendingUp, Clock, Target, Flame, Globe, MousePointerClick, CalendarCheck, MessageCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { brl, startOfWeek } from '@/lib/format';
+import { Button } from '@/components/ui/button';
 
 interface Lead {
   id: string;
@@ -27,15 +28,34 @@ interface Appointment {
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [landingMetrics, setLandingMetrics] = useState<{
+    pageViews: number; bookingRequests: number; ctaClicks: number; whatsappClicks: number;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ data: l }, { data: a }] = await Promise.all([
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const metricQuery = (eventType: string) =>
+        (supabase as any).from('landing_page_events').select('id', { count: 'exact', head: true })
+          .eq('event_type', eventType).gte('created_at', since);
+      const [leadsResult, appointmentsResult, views, requests, clicks, whatsapp] = await Promise.all([
         supabase.from('leads').select('id,name,stage,temperature,estimated_value,source,created_at'),
         supabase.from('appointments').select('*').order('scheduled_at', { ascending: true }),
+        metricQuery('page_view'),
+        metricQuery('booking_request'),
+        metricQuery('cta_click'),
+        metricQuery('whatsapp_click'),
       ]);
-      setLeads((l ?? []) as Lead[]);
-      setAppointments((a ?? []) as Appointment[]);
+      setLeads((leadsResult.data ?? []) as Lead[]);
+      setAppointments((appointmentsResult.data ?? []) as Appointment[]);
+      if (![views, requests, clicks, whatsapp].some((result) => result.error)) {
+        setLandingMetrics({
+          pageViews: views.count ?? 0,
+          bookingRequests: requests.count ?? 0,
+          ctaClicks: clicks.count ?? 0,
+          whatsappClicks: whatsapp.count ?? 0,
+        });
+      }
     })();
   }, []);
 
@@ -72,15 +92,40 @@ export default function Dashboard() {
     <div className="p-4 md:p-6 lg:px-8 space-y-4 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
-        <div className="text-xs sm:text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <a href="https://landing-page-gm-two.vercel.app/" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-4 h-4 mr-2" /> Ver landing page
+            </a>
+          </Button>
+          <div className="text-xs sm:text-sm text-muted-foreground">
           {new Date().toLocaleDateString('pt-BR', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
           })}
+          </div>
         </div>
       </div>
+
+      <Card className="shadow-card border border-accent/25 bg-gradient-card">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-accent" /> Métricas da landing page
+            </CardTitle>
+            <span className="text-xs text-muted-foreground">Últimos 30 dias · contagem desde a ativação</span>
+          </div>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard title="Acessos" value={landingMetrics?.pageViews.toLocaleString('pt-BR') ?? '—'} icon={Globe} />
+          <StatCard title="Solicitações de agendamento" value={landingMetrics?.bookingRequests.toLocaleString('pt-BR') ?? '—'} icon={CalendarCheck} />
+          <StatCard title="Cliques nos botões" value={landingMetrics?.ctaClicks.toLocaleString('pt-BR') ?? '—'} icon={MousePointerClick} />
+          <StatCard title="Cliques no WhatsApp" value={landingMetrics?.whatsappClicks.toLocaleString('pt-BR') ?? '—'} icon={MessageCircle} />
+        </CardContent>
+        <p className="px-6 pb-4 text-xs text-muted-foreground">Solicitações abrem uma conversa no WhatsApp; não representam agendamentos confirmados.</p>
+      </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard

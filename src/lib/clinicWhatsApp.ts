@@ -1,7 +1,5 @@
 // Configuração local do WhatsApp da clínica.
 // Persistida no navegador; posteriormente migra para clinic_settings/API oficial.
-import { normalizePhone } from './whatsapp';
-
 const KEY = 'gm.whatsapp.v1';
 
 export interface ClinicWhatsAppConfig {
@@ -11,13 +9,20 @@ export interface ClinicWhatsAppConfig {
   groupUrl: string;
 }
 
-const DEFAULTS: ClinicWhatsAppConfig = { number: '', groupUrl: '' };
+const CLINIC_NUMBER = '5521986083249';
+const DEFAULTS: ClinicWhatsAppConfig = { number: CLINIC_NUMBER, groupUrl: '' };
 
 export function loadClinicWhatsApp(): ClinicWhatsAppConfig {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULTS;
-    return { ...DEFAULTS, ...JSON.parse(raw) };
+    const stored = JSON.parse(raw) as Partial<ClinicWhatsAppConfig>;
+    const config = {
+      number: CLINIC_NUMBER,
+      groupUrl: typeof stored.groupUrl === 'string' ? stored.groupUrl : '',
+    };
+    if (stored.number !== CLINIC_NUMBER) localStorage.setItem(KEY, JSON.stringify(config));
+    return config;
   } catch {
     return DEFAULTS;
   }
@@ -25,7 +30,7 @@ export function loadClinicWhatsApp(): ClinicWhatsAppConfig {
 
 export function saveClinicWhatsApp(cfg: ClinicWhatsAppConfig) {
   const normalized: ClinicWhatsAppConfig = {
-    number: normalizePhone(cfg.number) ?? '',
+    number: CLINIC_NUMBER,
     groupUrl: cfg.groupUrl.trim(),
   };
   localStorage.setItem(KEY, JSON.stringify(normalized));

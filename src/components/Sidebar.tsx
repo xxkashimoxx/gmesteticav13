@@ -1,25 +1,25 @@
 import { useState } from 'react';
-import { Calendar, Users, CreditCard, BarChart3, Settings, Menu, Sparkles, Flame, Plug, MessageCircle, Syringe, LogOut, Sun, Search, Bot, CircleHelp } from 'lucide-react';
+import { Calendar, Users, CreditCard, BarChart3, Settings, Menu, Sparkles, Flame, Plug, MessageCircle, Syringe, LogOut, Sun, Search, Bot } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 
-const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/your-invite-code';
+const WHATSAPP_CLINIC_URL = 'https://wa.me/5521986083249';
 
 function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'header' }) {
   if (variant === 'header') {
     return (
-      <Button asChild variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" aria-label="Grupo WhatsApp - Marketing">
-        <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-5 h-5" /></a>
+      <Button asChild variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" aria-label="WhatsApp da clínica">
+        <a href={WHATSAPP_CLINIC_URL} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-5 h-5" /></a>
       </Button>
     );
   }
 
   return (
     <Button asChild className="w-full justify-start gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white shadow-card">
-      <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4" />Grupo Marketing</a>
+      <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4" />WhatsApp da clínica</a>
     </Button>
   );
 }
@@ -52,14 +52,6 @@ function visibleNav(role: AppRole | null) {
   return navigation.filter((i) => !i.roles || (role && i.roles.includes(role)));
 }
 
-function tourId(href: string) {
-  return href === '/' ? 'dashboard' : href.slice(1);
-}
-
-function startTutorial() {
-  window.dispatchEvent(new Event('gm:start-tutorial'));
-}
-
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
   const { role, user, signOut } = useAuth();
@@ -81,7 +73,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               key={item.name}
               to={item.href}
               onClick={onNavigate}
-              data-tour-id={tourId(item.href)}
               className={cn(
                 'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-smooth',
                 isActive
@@ -97,15 +88,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-3">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={startTutorial}
-          className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <CircleHelp className="w-4 h-4" />
-          Ver tutorial do painel
-        </Button>
         <WhatsAppGroupButton />
 
         <div className="flex items-center space-x-3">
@@ -142,9 +124,6 @@ export function MobileHeader() {
       </div>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" aria-label="Tutorial do painel" onClick={startTutorial}>
-          <CircleHelp className="w-5 h-5" />
-        </Button>
         <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10" aria-label="Busca global" onClick={() => (window as any).__openGlobalSearch?.()}>
           <Search className="w-5 h-5" />
         </Button>
@@ -175,7 +154,6 @@ export function MobileBottomNav() {
             <li key={item.name} className="flex-1">
               <NavLink
                 to={item.href}
-                data-tour-id={tourId(item.href)}
                 className={cn(
                   'flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-smooth',
                   isActive ? 'text-primary-foreground bg-primary' : 'text-muted-foreground hover:text-foreground',

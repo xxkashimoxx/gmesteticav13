@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.whatsapp-template]
 verify_jwt = true
+
+[functions.landing-analytics]
+verify_jwt = false

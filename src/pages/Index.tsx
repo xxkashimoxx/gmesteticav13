@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Sidebar, MobileHeader, MobileBottomNav } from '@/components/Sidebar';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton';
-import { FirstRunTutorial } from '@/components/FirstRunTutorial';
 import { PageMeta } from '@/components/PageMeta';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -75,7 +74,6 @@ const Index = () => {
         <MobileBottomNav />
       </div>
       <FloatingWhatsAppButton />
-      <FirstRunTutorial />
     </div>
   );
 };
