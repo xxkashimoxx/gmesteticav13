@@ -10,19 +10,51 @@
     <link rel="shortcut icon" type="image/svg+xml" href="/gm-favicon.svg?v=3" />
     <link rel="apple-touch-icon" href="/gm-favicon.svg?v=3" />
     <title>GM Estética Avançada - Sistema de Gestão</title>
-    <meta name="description" content="Painel de gestão da GM Estética Avançada.">
+    <meta name="description" content="Painel de gestão da GM Estética Avançada." />
     <meta name="author" content="GM Estética Avançada" />
 
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta property="og:title" content="GM Estética Avançada - Sistema de Gestão">
-    <meta name="twitter:title" content="GM Estética Avançada - Sistema de Gestão">
-    <meta property="og:description" content="Painel de gestão da GM Estética Avançada.">
-    <meta name="twitter:description" content="Painel de gestão da GM Estética Avançada.">
+    <meta property="og:title" content="GM Estética Avançada - Sistema de Gestão" />
+    <meta name="twitter:title" content="GM Estética Avançada - Sistema de Gestão" />
+    <meta property="og:description" content="Painel de gestão da GM Estética Avançada." />
+    <meta name="twitter:description" content="Painel de gestão da GM Estética Avançada." />
   </head>
 
-  <body>
-    <div id="root"></div>
+  <body style="margin: 0">
+    <div id="root">
+      <main
+        id="gm-boot"
+        style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f1ec;padding:24px;box-sizing:border-box;font-family:Arial,sans-serif;color:#0d1b2a"
+      >
+        <section style="width:100%;max-width:360px;text-align:center">
+          <div style="width:52px;height:52px;margin:0 auto 16px;border-radius:999px;background:#0d1b2a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">
+            GM
+          </div>
+          <strong style="font-size:20px">GM - GESTÃO GERAL</strong>
+          <p id="gm-boot-message" style="margin:10px 0 0;color:#59636e">Abrindo o sistema...</p>
+          <a
+            id="gm-boot-retry"
+            href="/auth?recuperar=1"
+            style="display:none;margin-top:18px;padding:12px 18px;border-radius:10px;background:#0d1b2a;color:#fff;text-decoration:none;font-weight:600"
+          >
+            Tentar novamente
+          </a>
+        </section>
+      </main>
+    </div>
+    <noscript>Ative o JavaScript para abrir o sistema GM.</noscript>
+    <script>
+      window.setTimeout(function () {
+        var boot = document.getElementById('gm-boot');
+        var message = document.getElementById('gm-boot-message');
+        var retry = document.getElementById('gm-boot-retry');
+        if (boot && message && retry) {
+          message.textContent = 'O carregamento demorou mais que o esperado.';
+          retry.style.display = 'inline-block';
+        }
+      }, 7000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { Sparkles, Loader2 } from 'lucide-react';
 
+const REQUEST_TIMEOUT_MS = 15000;
+
 const signInSchema = z.object({
   email: z.string().trim().email('E-mail inválido').max(255),
   password: z.string().min(6, 'Mínimo 6 caracteres').max(72),
@@ -19,6 +21,21 @@ const signInSchema = z.object({
 const signUpSchema = signInSchema.extend({
   fullName: z.string().trim().min(2, 'Informe o nome').max(120),
 });
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('A conexão demorou mais que o esperado.')), timeoutMs);
+  });
+
+  return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+function connectionErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return 'Não foi possível conectar. Verifique a internet e tente novamente.';
+}
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -29,8 +46,7 @@ export default function Auth() {
     if (!loading && user) navigate('/', { replace: true });
   }, [user, loading, navigate]);
 
-  if (loading) return null;
-  if (user) return <Navigate to="/" replace />;
+  if (!loading && user) return <Navigate to="/" replace />;
 
   async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -43,17 +59,27 @@ export default function Auth() {
       toast({ title: 'Dados inválidos', description: parsed.error.issues[0].message, variant: 'destructive' });
       return;
     }
+
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: parsed.data.email,
-      password: parsed.data.password,
-    });
-    setBusy(false);
-    if (error) {
-      toast({ title: 'Falha no login', description: error.message, variant: 'destructive' });
-      return;
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        }),
+        REQUEST_TIMEOUT_MS,
+      );
+
+      if (error) {
+        toast({ title: 'Falha no login', description: error.message, variant: 'destructive' });
+        return;
+      }
+      navigate('/', { replace: true });
+    } catch (error) {
+      toast({ title: 'Falha na conexão', description: connectionErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setBusy(false);
     }
-    navigate('/', { replace: true });
   }
 
   async function handleSignUp(e: React.FormEvent<HTMLFormElement>) {
@@ -68,21 +94,31 @@ export default function Auth() {
       toast({ title: 'Dados inválidos', description: parsed.error.issues[0].message, variant: 'destructive' });
       return;
     }
+
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { full_name: parsed.data.fullName },
-      },
-    });
-    setBusy(false);
-    if (error) {
-      toast({ title: 'Falha no cadastro', description: error.message, variant: 'destructive' });
-      return;
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.signUp({
+          email: parsed.data.email,
+          password: parsed.data.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: { full_name: parsed.data.fullName },
+          },
+        }),
+        REQUEST_TIMEOUT_MS,
+      );
+
+      if (error) {
+        toast({ title: 'Falha no cadastro', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Conta criada', description: 'Você já pode entrar.' });
+    } catch (error) {
+      toast({ title: 'Falha na conexão', description: connectionErrorMessage(error), variant: 'destructive' });
+    } finally {
+      setBusy(false);
     }
-    toast({ title: 'Conta criada', description: 'Você já pode entrar.' });
   }
 
   return (
@@ -98,6 +134,12 @@ export default function Auth() {
           </div>
           <CardTitle className="text-2xl">GM - GESTÃO GERAL</CardTitle>
           <CardDescription>Acesso restrito à clínica e à equipe de tráfego</CardDescription>
+          {loading && (
+            <div className="flex items-center justify-center gap-2 pt-1 text-xs text-muted-foreground" role="status">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Verificando acesso...
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
@@ -115,9 +157,9 @@ export default function Auth() {
                   <Label htmlFor="si-pass">Senha</Label>
                   <Input id="si-pass" name="password" type="password" autoComplete="current-password" required />
                 </div>
-                <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground" disabled={busy}>
-                  {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Entrar
+                <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground" disabled={busy || loading}>
+                  {(busy || loading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {loading ? 'Verificando...' : 'Entrar'}
                 </Button>
               </form>
             </TabsContent>
@@ -135,8 +177,8 @@ export default function Auth() {
                   <Label htmlFor="su-pass">Senha</Label>
                   <Input id="su-pass" name="password" type="password" autoComplete="new-password" required minLength={6} />
                 </div>
-                <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground" disabled={busy}>
-                  {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Button type="submit" className="w-full bg-gradient-primary text-primary-foreground" disabled={busy || loading}>
+                  {(busy || loading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Criar conta
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
