@@ -5,14 +5,32 @@ interface AppErrorBoundaryProps {
 }
 
 interface AppErrorBoundaryState {
-  hasError: boolean;
+  error: Error | null;
+}
+
+function getSafeErrorMessage(error: Error | null) {
+  if (!error) return 'Erro inesperado ao carregar a página.';
+  const message = error.message?.replace(/[\r\n]+/g, ' ').trim();
+  return message ? message.slice(0, 180) : error.name || 'Erro inesperado ao carregar a página.';
+}
+
+function resetAccessAndReload() {
+  try {
+    const storage = window.localStorage;
+    const authKeys = Object.keys(storage).filter((key) => /(^sb-.+-auth-token$|supabase\.auth\.token)/i.test(key));
+    authKeys.forEach((key) => storage.removeItem(key));
+  } catch (error) {
+    console.warn('Não foi possível limpar a sessão local.', error);
+  }
+
+  window.location.assign(`/auth?recuperar=${Date.now()}`);
 }
 
 export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
-  state: AppErrorBoundaryState = { hasError: false };
+  state: AppErrorBoundaryState = { error: null };
 
-  static getDerivedStateFromError(): AppErrorBoundaryState {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
+    return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -20,7 +38,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   render() {
-    if (!this.state.hasError) return this.props.children;
+    if (!this.state.error) return this.props.children;
 
     return (
       <main className="min-h-screen flex items-center justify-center bg-background p-6">
@@ -30,17 +48,23 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           </div>
           <h1 className="text-xl font-semibold text-foreground">Não foi possível abrir o sistema</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            A página encontrou uma falha durante o carregamento. Tente abrir novamente.
+            A sessão pode ter falhado. Reinicie o acesso; seus cadastros e atendimentos não serão apagados.
           </p>
           <button
             type="button"
             className="mt-5 w-full rounded-lg bg-primary px-4 py-3 font-medium text-primary-foreground"
-            onClick={() => window.location.assign(`/auth?recuperar=${Date.now()}`)}
+            onClick={resetAccessAndReload}
           >
-            Abrir novamente
+            Reiniciar acesso
           </button>
+          <details className="mt-4 rounded-lg bg-muted p-3 text-left">
+            <summary className="cursor-pointer text-sm font-medium text-foreground">Detalhe da falha</summary>
+            <p className="mt-2 break-words text-xs text-muted-foreground" role="status">
+              {getSafeErrorMessage(this.state.error)}
+            </p>
+          </details>
           <a
-            className="mt-3 block text-sm font-medium text-primary underline-offset-4 hover:underline"
+            className="mt-4 block text-sm font-medium text-primary underline-offset-4 hover:underline"
             href="https://landing-page-gm-two.vercel.app/"
           >
             Ir para a página da clínica
