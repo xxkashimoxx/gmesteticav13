@@ -19,7 +19,7 @@ function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'h
 
   return (
     <Button asChild className="w-full justify-start gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white shadow-card">
-      <a href={WHATSAPP_GROUP_URL} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4" />WhatsApp da clínica</a>
+      <a href={WHATSAPP_CLINIC_URL} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4" />WhatsApp da clínica</a>
     </Button>
   );
 }
