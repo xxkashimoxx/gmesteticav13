@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 
-const WHATSAPP_CLINIC_URL = 'https://wa.me/5521986083249';
+const WHATSAPP_CLINIC_URL = 'https://wa.me/5521986083241';
 
 function WhatsAppGroupButton({ variant = 'sidebar' }: { variant?: 'sidebar' | 'header' }) {
   if (variant === 'header') {

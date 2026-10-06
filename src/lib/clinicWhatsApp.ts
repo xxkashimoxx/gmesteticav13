@@ -9,7 +9,7 @@ export interface ClinicWhatsAppConfig {
   groupUrl: string;
 }
 
-const CLINIC_NUMBER = '5521986083249';
+const CLINIC_NUMBER = '5521986083241';
 const DEFAULTS: ClinicWhatsAppConfig = { number: CLINIC_NUMBER, groupUrl: '' };
 
 export function loadClinicWhatsApp(): ClinicWhatsAppConfig {
