@@ -11,9 +11,10 @@ const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
 const whatsappAccessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
 const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
-const whatsappAppSecret = Deno.env.get("WHATSAPP_APP_SECRET") ?? Deno.env.get("META_APP_SECRET") ?? "";
-const whatsappVerifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? Deno.env.get("META_VERIFY_TOKEN") ?? "";
-const whatsappConfigured = Boolean(whatsappAccessToken && whatsappPhoneNumberId && whatsappAppSecret && whatsappVerifyToken);
+const whatsappGraphApiVersion = Deno.env.get("WHATSAPP_GRAPH_API_VERSION") ?? "";
+const whatsappAppSecret = Deno.env.get("WHATSAPP_APP_SECRET") ?? "";
+const whatsappVerifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "";
+const whatsappConfigured = Boolean(whatsappAccessToken && whatsappPhoneNumberId && /^v\\d+\\.\\d+$/.test(whatsappGraphApiVersion) && whatsappAppSecret && whatsappVerifyToken);
 const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
 const db = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false, autoRefreshToken: false },
