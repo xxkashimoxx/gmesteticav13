@@ -6,7 +6,7 @@ const VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN') ?? Deno.env.get('META
 const APP_SECRET = Deno.env.get('WHATSAPP_APP_SECRET') ?? Deno.env.get('META_APP_SECRET') ?? '';
 const PHONE_NUMBER_ID = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID') ?? '';
 const ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? '';
-const API_VERSION = Deno.env.get('WHATSAPP_API_VERSION') ?? 'v23.0';
+const API_VERSION = Deno.env.get('WHATSAPP_GRAPH_API_VERSION') ?? Deno.env.get('WHATSAPP_API_VERSION') ?? 'v23.0';
 const MEDIA_BUCKET = 'whatsapp-media';
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
