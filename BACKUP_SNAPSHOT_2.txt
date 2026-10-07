@@ -1,0 +1,1 @@
+Trigger temporário para geração do artefato ZIP.
