@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Bot,
   CheckCircle2,
   Clock3,
   Copy,
@@ -110,6 +111,11 @@ export default function WhatsApp() {
   const [metaPhone, setMetaPhone] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [geminiConfigured, setGeminiConfigured] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [aiContactEnabled, setAiContactEnabled] = useState(true);
+  const [aiContactSaving, setAiContactSaving] = useState(false);
 
   async function loadDatabase(silent = false) {
     if (!silent) setRefreshing(true);
@@ -184,6 +190,54 @@ export default function WhatsApp() {
     setRefreshing(false);
   }
 
+  async function loadAiStatus() {
+    const { data, error } = await supabase.functions.invoke('gm-ai-agent', { body: { action: 'status' } });
+    if (error || data?.error) {
+      setAiEnabled(false);
+      setGeminiConfigured(false);
+      return;
+    }
+    setAiEnabled(Boolean(data?.autoReplyEnabled));
+    setGeminiConfigured(Boolean(data?.geminiConfigured));
+  }
+
+  async function setAutomaticReplies(enabled: boolean) {
+    setAiSaving(true);
+    const { data, error } = await supabase.functions.invoke('gm-ai-agent', {
+      body: { action: 'set_auto_reply', enabled },
+    });
+    setAiSaving(false);
+    if (error || data?.error) {
+      toast.error('Não foi possível alterar a IA', { description: data?.error || error?.message });
+      return;
+    }
+    setAiEnabled(Boolean(data?.autoReplyEnabled));
+    toast.success(enabled ? 'IA automática ativada.' : 'IA automática pausada.');
+  }
+
+  async function loadContactAi(phone: string) {
+    const { data, error } = await supabase.functions.invoke('gm-ai-agent', {
+      body: { action: 'contact_status', phone },
+    });
+    if (!error && !data?.error) setAiContactEnabled(Boolean(data?.aiEnabled));
+    else setAiContactEnabled(false);
+  }
+
+  async function setContactAi(enabled: boolean, phone = active?.phone) {
+    if (!phone) return;
+    setAiContactSaving(true);
+    const { data, error } = await supabase.functions.invoke('gm-ai-agent', {
+      body: { action: 'set_contact_mode', phone, enabled },
+    });
+    setAiContactSaving(false);
+    if (error || data?.error) {
+      toast.error('Não foi possível alterar esta conversa', { description: data?.error || error?.message });
+      return;
+    }
+    setAiContactEnabled(Boolean(data?.aiEnabled));
+    toast.success(enabled ? 'IA retomada nesta conversa.' : 'Conversa encaminhada para atendimento humano.');
+  }
+
   async function loadMetaStatus() {
     const { data, error } = await supabase.functions.invoke('whatsapp-status', { body: {} });
     if (error || data?.error) {
@@ -198,6 +252,7 @@ export default function WhatsApp() {
   useEffect(() => {
     void loadDatabase();
     void loadMetaStatus();
+    void loadAiStatus();
     const timer = window.setInterval(() => void loadDatabase(true), 15000);
     return () => window.clearInterval(timer);
   }, []);
@@ -243,12 +298,26 @@ export default function WhatsApp() {
   }, [threads, selected]);
 
   const active = threads.find((thread) => thread.key === selected) ?? null;
+  useEffect(() => {
+    if (active?.phone) void loadContactAi(active.phone);
+    else setAiContactEnabled(true);
+  }, [active?.phone]);
+
   const failures = events.filter((event) => event.processing_status === 'failed').length;
   const latestEvent = events[0] ?? null;
 
   async function sendManual() {
     if (!active || !active.leadId || !draft.trim()) return;
     setSending(true);
+    const { error: pauseError, data: pauseData } = await supabase.functions.invoke('gm-ai-agent', {
+      body: { action: 'set_contact_mode', phone: active.phone, enabled: false },
+    });
+    if (pauseError || pauseData?.error) {
+      setSending(false);
+      toast.error('Não foi possível pausar a IA desta conversa', { description: pauseData?.error || pauseError?.message });
+      return;
+    }
+    setAiContactEnabled(false);
     const { data, error } = await supabase.functions.invoke('whatsapp-send', {
       body: {
         requestId: crypto.randomUUID(),
@@ -347,15 +416,24 @@ export default function WhatsApp() {
         </Card>
       </div>
 
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="flex gap-3 p-4">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
-          <div className="space-y-1">
-            <p className="font-semibold text-sm">Respostas automáticas do sistema desligadas</p>
-            <p className="text-sm text-muted-foreground">
-              Você pode usar a Meta AI no WhatsApp Business do celular. O sistema registra os eventos recebidos e não responde clientes automaticamente.
-            </p>
+      <Card className={aiEnabled ? 'border-[#25D366]/40 bg-[#25D366]/5' : 'border-primary/20 bg-primary/5'}>
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3">
+            <Bot className={'h-5 w-5 shrink-0 ' + (aiEnabled ? 'text-[#16834a]' : 'text-primary')} />
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold text-sm">Atendimento automático GM</p>
+                <Badge variant={aiEnabled ? 'default' : 'secondary'}>{aiEnabled ? 'Ativado' : 'Pausado'}</Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Gemini responde dúvidas gerais usando informações públicas da clínica. Dúvidas clínicas e mensagens com mídia são encaminhadas à equipe.
+              </p>
+              {!geminiConfigured && <p className="mt-1 text-xs text-destructive">A chave Gemini não está disponível no Supabase.</p>}
+            </div>
           </div>
+          <Button variant="outline" onClick={() => void setAutomaticReplies(!aiEnabled)} disabled={aiSaving || !geminiConfigured}>
+            {aiSaving ? 'Salvando…' : aiEnabled ? 'Pausar IA' : 'Ativar IA'}
+          </Button>
         </CardContent>
       </Card>
 
@@ -444,9 +522,19 @@ export default function WhatsApp() {
 
         <Card className="flex flex-col">
           <CardHeader className="border-b">
-            <CardTitle className="text-base">
-              {active ? active.name : 'Selecione uma conversa'}
-              {active && <span className="ml-2 text-sm font-normal text-muted-foreground">{phoneLabel(active.phone)}</span>}
+            <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-base">
+              <span>
+                {active ? active.name : 'Selecione uma conversa'}
+                {active && <span className="ml-2 text-sm font-normal text-muted-foreground">{phoneLabel(active.phone)}</span>}
+              </span>
+              {active && <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void setContactAi(!aiContactEnabled, active.phone)}
+                disabled={aiContactSaving}
+              >
+                {aiContactSaving ? 'Salvando…' : aiContactEnabled ? 'Passar para equipe' : 'Retomar IA'}
+              </Button>}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col p-4">
@@ -478,7 +566,7 @@ export default function WhatsApp() {
                       <p className="mt-2 text-xs opacity-80">Arquivo maior que 50 MB: os metadados foram salvos, mas o arquivo não foi arquivado.</p>
                     )}
                     <p className="mt-1 text-[10px] opacity-75">
-                      {message.direction === 'out' ? 'Enviada' : 'Recebida'}{message.message_type !== 'text' ? ' · ' + message.message_type : ''}
+                      {message.raw_payload?.gm_ai_generated ? 'IA GM' : message.direction === 'out' ? 'Enviada' : 'Recebida'}{message.message_type !== 'text' ? ' · ' + message.message_type : ''}
                       {' · '}{statusLabel(message.status)}
                       {' · '}{new Date(messageTime(message)).toLocaleString('pt-BR')}
                     </p>
