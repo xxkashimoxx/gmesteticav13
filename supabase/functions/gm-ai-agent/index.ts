@@ -14,7 +14,7 @@ const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
 const whatsappGraphApiVersion = Deno.env.get("WHATSAPP_GRAPH_API_VERSION") ?? "";
 const whatsappAppSecret = Deno.env.get("WHATSAPP_APP_SECRET") ?? "";
 const whatsappVerifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? "";
-const whatsappConfigured = Boolean(whatsappAccessToken && whatsappPhoneNumberId && /^v\\d+\\.\\d+$/.test(whatsappGraphApiVersion) && whatsappAppSecret && whatsappVerifyToken);
+const whatsappConfigured = Boolean(whatsappAccessToken && whatsappPhoneNumberId && /^v\d+\.\d+$/.test(whatsappGraphApiVersion) && whatsappAppSecret && whatsappVerifyToken);
 const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
 const db = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false, autoRefreshToken: false },
