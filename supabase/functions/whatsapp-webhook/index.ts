@@ -68,7 +68,7 @@ async function generateWhatsAppReply(messageText: string) {
 async function replyToWhatsApp(message: any, phone: string, name: string | null, phoneNumberId: string) {
   const providerId = String(message?.id ?? '').trim();
   const normalizedPhone = normalizePhone(phone);
-  if (!providerId || !normalizedPhone || !ACCESS_TOKEN || !phoneNumberId) return;
+  if (!providerId || !normalizedPhone || !ACCESS_TOKEN || !phoneNumberId || !GEMINI_API_KEY) return;
   const timestamp = toIso(message?.timestamp);
   if (Date.now() - Date.parse(timestamp) >= 24 * 60 * 60 * 1000) return;
 
