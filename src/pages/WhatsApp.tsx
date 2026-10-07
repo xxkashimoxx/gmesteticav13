@@ -113,6 +113,7 @@ export default function WhatsApp() {
   const [sending, setSending] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [geminiConfigured, setGeminiConfigured] = useState(false);
+  const [whatsappConfigured, setWhatsappConfigured] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiContactEnabled, setAiContactEnabled] = useState(true);
   const [aiContactSaving, setAiContactSaving] = useState(false);
@@ -195,10 +196,12 @@ export default function WhatsApp() {
     if (error || data?.error) {
       setAiEnabled(false);
       setGeminiConfigured(false);
+      setWhatsappConfigured(false);
       return;
     }
     setAiEnabled(Boolean(data?.autoReplyEnabled));
     setGeminiConfigured(Boolean(data?.geminiConfigured));
+    setWhatsappConfigured(Boolean(data?.whatsappConfigured));
   }
 
   async function setAutomaticReplies(enabled: boolean) {
@@ -303,6 +306,8 @@ export default function WhatsApp() {
     else setAiContactEnabled(true);
   }, [active?.phone]);
 
+  const aiOperational = Boolean(geminiConfigured && whatsappConfigured && metaConnected);
+  const aiStatusLabel = aiEnabled && aiOperational ? 'Ativado' : aiEnabled ? 'Aguardando configuração' : 'Pausado';
   const failures = events.filter((event) => event.processing_status === 'failed').length;
   const latestEvent = events[0] ?? null;
 
@@ -416,22 +421,24 @@ export default function WhatsApp() {
         </Card>
       </div>
 
-      <Card className={aiEnabled ? 'border-[#25D366]/40 bg-[#25D366]/5' : 'border-primary/20 bg-primary/5'}>
+      <Card className={aiEnabled && aiOperational ? 'border-[#25D366]/40 bg-[#25D366]/5' : 'border-primary/20 bg-primary/5'}>
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-3">
-            <Bot className={'h-5 w-5 shrink-0 ' + (aiEnabled ? 'text-[#16834a]' : 'text-primary')} />
+            <Bot className={'h-5 w-5 shrink-0 ' + (aiEnabled && aiOperational ? 'text-[#16834a]' : 'text-primary')} />
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-sm">Atendimento automático GM</p>
-                <Badge variant={aiEnabled ? 'default' : 'secondary'}>{aiEnabled ? 'Ativado' : 'Pausado'}</Badge>
+                <Badge variant={aiEnabled && aiOperational ? 'default' : 'secondary'}>{aiStatusLabel}</Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Gemini responde dúvidas gerais usando informações públicas da clínica. Dúvidas clínicas e mensagens com mídia são encaminhadas à equipe.
               </p>
-              {!geminiConfigured && <p className="mt-1 text-xs text-destructive">A chave Gemini não está disponível no Supabase.</p>}
+              {!geminiConfigured && <p className="mt-1 text-xs text-destructive">Configure GEMINI_API_KEY nos segredos das Edge Functions do Supabase.</p>}
+              {geminiConfigured && !whatsappConfigured && <p className="mt-1 text-xs text-destructive">As credenciais da API da Meta ainda não estão completas no Supabase.</p>}
+              {geminiConfigured && whatsappConfigured && metaConnected !== true && <p className="mt-1 text-xs text-destructive">A API da Meta ainda não confirmou a conexão do número.</p>}
             </div>
           </div>
-          <Button variant="outline" onClick={() => void setAutomaticReplies(!aiEnabled)} disabled={aiSaving || !geminiConfigured}>
+          <Button variant="outline" onClick={() => void setAutomaticReplies(!aiEnabled)} disabled={aiSaving || (!aiEnabled && !aiOperational)}>
             {aiSaving ? 'Salvando…' : aiEnabled ? 'Pausar IA' : 'Ativar IA'}
           </Button>
         </CardContent>
