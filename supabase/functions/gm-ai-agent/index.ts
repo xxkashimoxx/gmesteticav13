@@ -9,6 +9,11 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
+const whatsappAccessToken = Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "";
+const whatsappPhoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") ?? "";
+const whatsappAppSecret = Deno.env.get("WHATSAPP_APP_SECRET") ?? Deno.env.get("META_APP_SECRET") ?? "";
+const whatsappVerifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN") ?? Deno.env.get("META_VERIFY_TOKEN") ?? "";
+const whatsappConfigured = Boolean(whatsappAccessToken && whatsappPhoneNumberId && whatsappAppSecret && whatsappVerifyToken);
 const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.6-flash";
 const db = createClient(supabaseUrl, serviceRole, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -131,11 +136,13 @@ Deno.serve(async (req: Request) => {
         db.from("gm_ai_training_examples").select("id", { count: "exact", head: true }).eq("active", true),
       ]);
       if (error) throw error;
-      return json({ autoReplyEnabled: Boolean(settings?.auto_reply_enabled), learned: count ?? 0, geminiConfigured: Boolean(geminiKey) });
+      return json({ autoReplyEnabled: Boolean(settings?.auto_reply_enabled), learned: count ?? 0, geminiConfigured: Boolean(geminiKey), whatsappConfigured });
     }
 
     if (action === "set_auto_reply") {
       if (typeof body.enabled !== "boolean") return json({ error: "Informe se a IA deve ficar ativada." }, 400);
+      if (body.enabled && !geminiKey) return json({ error: "Configure GEMINI_API_KEY nos segredos das Edge Functions do Supabase antes de ativar a IA." }, 409);
+      if (body.enabled && !whatsappConfigured) return json({ error: "Conclua a configuração das credenciais da Meta no Supabase antes de ativar respostas pelo WhatsApp." }, 409);
       const { error } = await db.from("gm_ai_settings").upsert({
         id: "main", auto_reply_enabled: body.enabled, updated_at: new Date().toISOString(),
       }, { onConflict: "id" });
