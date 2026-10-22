@@ -9,6 +9,16 @@ verify_jwt = false
 [functions.whatsapp-suggest]
 verify_jwt = true
 
+# Both functions validate the caller's JWT and staff role in their own handler.
+[functions.whatsapp-send]
+verify_jwt = false
+
+[functions.whatsapp-status]
+verify_jwt = false
+
+[functions.gm-ai-agent]
+verify_jwt = true
+
 [functions.whatsapp-webhook]
 verify_jwt = false
 

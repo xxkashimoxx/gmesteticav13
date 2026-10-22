@@ -49,7 +49,7 @@ async function requireStaff(req: Request) {
 }
 
 function handoffNeeded(text: string) {
-  return /(quero falar com (uma pessoa|algu[eé]m|atendente)|atendente humano|pessoa real|dor|sangr|febre|alerg|gestante|gravid|amament|medicamento|rem[eé]dio|doen[cç]|contraindic|complica[cç]|rea[cç][aã]o|hematoma|n[oó]dulo|necrose|queimadura|infec[cç][aã]o|p[oó]s[- ]?procedimento|diagn[oó]stic|efeito colateral|estou passando mal)/i.test(text);
+  return /(?:^|[^\p{L}])(?:quero falar com (?:uma pessoa|algu[eé]m|atendente)|atendente humano|pessoa real|dor(?:es)?|sangr\p{L}*|febre|alerg\p{L}*|gestante|gr[aá]vid\p{L}*|amament\p{L}*|medicamento\p{L}*|rem[eé]dio\p{L}*|doen[cç]\p{L}*|contraindic\p{L}*|complica[cç]\p{L}*|rea[cç][aã]o|hematoma\p{L}*|n[oó]dulo\p{L}*|necrose|queimadura\p{L}*|infec[cç][aã]o|p[oó]s[- ]?procedimento|diagn[oó]stic\p{L}*|efeito colateral|estou passando mal)(?=$|[^\p{L}])/iu.test(text);
 }
 
 async function publicContext() {

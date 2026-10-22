@@ -9,12 +9,13 @@ const ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN') ?? '';
 const API_VERSION = Deno.env.get('WHATSAPP_GRAPH_API_VERSION') ?? Deno.env.get('WHATSAPP_API_VERSION') ?? 'v23.0';
 const MEDIA_BUCKET = 'whatsapp-media';
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
+const MAX_AI_REPLIES_PER_CONTACT_PER_HOUR = 12;
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
 const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.6-flash';
 
 function needsHumanReply(text: string) {
-  return /(quero falar com (uma pessoa|algu[eé]m|atendente)|atendente humano|pessoa real|dor|sangr|febre|alerg|gestante|gravid|amament|medicamento|rem[eé]dio|doen[cç]|contraindic|complica[cç]|rea[cç][aã]o|hematoma|n[oó]dulo|necrose|queimadura|infec[cç][aã]o|p[oó]s[- ]?procedimento|diagn[oó]stic|efeito colateral|estou passando mal)/i.test(text);
+  return /(?:^|[^\p{L}])(?:quero falar com (?:uma pessoa|algu[eé]m|atendente)|atendente humano|pessoa real|dor(?:es)?|sangr\p{L}*|febre|alerg\p{L}*|gestante|gr[aá]vid\p{L}*|amament\p{L}*|medicamento\p{L}*|rem[eé]dio\p{L}*|doen[cç]\p{L}*|contraindic\p{L}*|complica[cç]\p{L}*|rea[cç][aã]o|hematoma\p{L}*|n[oó]dulo\p{L}*|necrose|queimadura\p{L}*|infec[cç][aã]o|p[oó]s[- ]?procedimento|diagn[oó]stic\p{L}*|efeito colateral|estou passando mal)(?=$|[^\p{L}])/iu.test(text);
 }
 
 function isTextLike(message: any) {
@@ -69,8 +70,9 @@ async function replyToWhatsApp(message: any, phone: string, name: string | null,
   const providerId = String(message?.id ?? '').trim();
   const normalizedPhone = normalizePhone(phone);
   if (!providerId || !normalizedPhone || !ACCESS_TOKEN || !phoneNumberId || !GEMINI_API_KEY) return;
-  const timestamp = toIso(message?.timestamp);
-  if (Date.now() - Date.parse(timestamp) >= 24 * 60 * 60 * 1000) return;
+  const timestampSeconds = Number(message?.timestamp);
+  const age = Date.now() - timestampSeconds * 1000;
+  if (!Number.isFinite(timestampSeconds) || timestampSeconds <= 0 || age < 0 || age >= 24 * 60 * 60 * 1000) return;
 
   const { data: settings, error: settingsError } = await db!.from('gm_ai_settings')
     .select('auto_reply_enabled').eq('id', 'main').maybeSingle();
@@ -99,6 +101,21 @@ async function replyToWhatsApp(message: any, phone: string, name: string | null,
         status = 'handoff';
         reply = 'Para te orientar com segurança, vou encaminhar essa dúvida para a equipe da clínica responder por aqui. 💙';
       } else {
+        // Limite apenas respostas de IA; mensagens recebidas continuam registradas.
+        const { count, error: limitError } = await db!.from('gm_ai_reply_jobs')
+          .select('provider_id', { count: 'exact', head: true })
+          .eq('phone', normalizedPhone)
+          .eq('status', 'sent')
+          .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+        if (limitError) throw new Error('Não foi possível verificar o limite de respostas automáticas.');
+        if ((count ?? 0) >= MAX_AI_REPLIES_PER_CONTACT_PER_HOUR) {
+          const { error: skipError } = await db!.from('gm_ai_reply_jobs').update({
+            status: 'skipped', error: 'Limite de respostas automáticas por contato atingido.',
+            updated_at: new Date().toISOString(),
+          }).eq('provider_id', providerId);
+          if (skipError) throw new Error('Não foi possível registrar o limite de respostas automáticas.');
+          return;
+        }
         reply = await generateWhatsAppReply(incomingText);
       }
     }
