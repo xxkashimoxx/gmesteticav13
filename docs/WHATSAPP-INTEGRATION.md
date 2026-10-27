@@ -61,3 +61,11 @@ As tabelas de mensagens, contatos e auditoria têm RLS. Usuários autenticados c
 ## Limite da conexão
 
 Publicar o webhook prepara o destino, mas não assina automaticamente os campos da Meta nem conclui coexistência. Até a Meta enviar o primeiro evento, a tela mostrará “Ainda não chegou nenhum evento da Meta”. A conexão da Cloud API exibida no painel confirma acesso à API, mas não prova que cada assinatura de webhook esteja ativa.
+
+## Disponibilidade pública (Meta AI)
+
+A Meta AI não consegue ler a agenda do app. Por isso existe a página pública `/disponibilidade`, alimentada pela função `public-availability`, que mostra só os dias com horário livre (sem nomes de pacientes nem motivos de folga). O link aparece em Configurações → "Folgas e disponibilidade pública" e deve ser colocado nas instruções da Meta AI para ela enviar quando alguém perguntar por vagas.
+
+Antes de divulgar o link, o administrador deve definir os dias e horários reais em Configurações → "Folgas e disponibilidade pública" e clicar em "Salvar expediente". O banco de produção ainda não tinha expediente configurado; a função retorna indisponibilidade até essa etapa ser concluída.
+
+Como o cálculo funciona: horários de `clinic_settings.working_hours`, duração e intervalo por `slot_duration_min`/`slot_buffer_min`, agendamentos de `appointments` (cancelados e faltas não ocupam), folgas de `agenda_blocks`, e nada é oferecido com menos de 3 horas de antecedência. Todo agendamento ocupa uma duração fixa (a do horário), pois a tabela não guarda duração por atendimento. Procedimentos longos devem ser confirmados pela equipe. Se a agenda não puder ser lida, a página mostra erro em vez de dias livres.

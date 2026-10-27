@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { loadClinicWhatsApp, saveClinicWhatsApp } from '@/lib/clinicWhatsApp';
+import { AgendaBlocks } from '@/components/AgendaBlocks';
 
 const SETTINGS_KEY = 'gm.settings.v1';
 type SettingsShape = {
@@ -374,6 +375,8 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        <AgendaBlocks />
 
         <Card className="shadow-card border-0 bg-gradient-card xl:col-span-2">
           <CardHeader>

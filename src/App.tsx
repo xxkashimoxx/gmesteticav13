@@ -24,6 +24,7 @@ import LeadCapture from "./pages/LeadCapture";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import BlogMarketingClinicas from "./pages/BlogMarketingClinicas";
+import Disponibilidade from "./pages/Disponibilidade";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/captacao" element={<LeadCapture />} />
+            <Route path="/disponibilidade" element={<Disponibilidade />} />
             <Route path="/blog/marketing-para-clinicas-de-estetica" element={<BlogMarketingClinicas />} />
             <Route path="/onboarding" element={<ProtectedRoute allow={["admin"]}><Onboarding /></ProtectedRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>}>

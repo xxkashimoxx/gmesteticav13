@@ -59,6 +59,36 @@ export type Database = {
         }
         Relationships: []
       }
+      agenda_blocks: {
+        Row: {
+          block_date: string
+          created_at: string
+          created_by: string | null
+          end_time: string | null
+          id: string
+          reason: string | null
+          start_time: string | null
+        }
+        Insert: {
+          block_date: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Update: {
+          block_date?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           checked_in_at: string | null

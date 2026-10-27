@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.public-lead]
 verify_jwt = false
 
+[functions.public-availability]
+verify_jwt = false
+
 [functions.whatsapp-suggest]
 verify_jwt = true
 
