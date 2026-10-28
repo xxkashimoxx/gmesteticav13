@@ -111,13 +111,6 @@ export default function WhatsApp() {
   const [metaPhone, setMetaPhone] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(false);
-  const [geminiConfigured, setGeminiConfigured] = useState(false);
-  const [whatsappConfigured, setWhatsappConfigured] = useState(false);
-  const [aiSaving, setAiSaving] = useState(false);
-  const [aiContactEnabled, setAiContactEnabled] = useState(true);
-  const [aiContactSaving, setAiContactSaving] = useState(false);
-
   async function loadDatabase(silent = false) {
     if (!silent) setRefreshing(true);
     const [messageResult, contactResult, eventResult] = await Promise.all([
@@ -191,56 +184,6 @@ export default function WhatsApp() {
     setRefreshing(false);
   }
 
-  async function loadAiStatus() {
-    const { data, error } = await supabase.functions.invoke('gm-ai-agent', { body: { action: 'status' } });
-    if (error || data?.error) {
-      setAiEnabled(false);
-      setGeminiConfigured(false);
-      setWhatsappConfigured(false);
-      return;
-    }
-    setAiEnabled(Boolean(data?.autoReplyEnabled));
-    setGeminiConfigured(Boolean(data?.geminiConfigured));
-    setWhatsappConfigured(Boolean(data?.whatsappConfigured));
-  }
-
-  async function setAutomaticReplies(enabled: boolean) {
-    setAiSaving(true);
-    const { data, error } = await supabase.functions.invoke('gm-ai-agent', {
-      body: { action: 'set_auto_reply', enabled },
-    });
-    setAiSaving(false);
-    if (error || data?.error) {
-      toast.error('Não foi possível alterar a IA', { description: data?.error || error?.message });
-      return;
-    }
-    setAiEnabled(Boolean(data?.autoReplyEnabled));
-    toast.success(enabled ? 'IA automática ativada.' : 'IA automática pausada.');
-  }
-
-  async function loadContactAi(phone: string) {
-    const { data, error } = await supabase.functions.invoke('gm-ai-agent', {
-      body: { action: 'contact_status', phone },
-    });
-    if (!error && !data?.error) setAiContactEnabled(Boolean(data?.aiEnabled));
-    else setAiContactEnabled(false);
-  }
-
-  async function setContactAi(enabled: boolean, phone = active?.phone) {
-    if (!phone) return;
-    setAiContactSaving(true);
-    const { data, error } = await supabase.functions.invoke('gm-ai-agent', {
-      body: { action: 'set_contact_mode', phone, enabled },
-    });
-    setAiContactSaving(false);
-    if (error || data?.error) {
-      toast.error('Não foi possível alterar esta conversa', { description: data?.error || error?.message });
-      return;
-    }
-    setAiContactEnabled(Boolean(data?.aiEnabled));
-    toast.success(enabled ? 'IA retomada nesta conversa.' : 'Conversa encaminhada para atendimento humano.');
-  }
-
   async function loadMetaStatus() {
     const { data, error } = await supabase.functions.invoke('whatsapp-status', { body: {} });
     if (error || data?.error) {
@@ -255,7 +198,6 @@ export default function WhatsApp() {
   useEffect(() => {
     void loadDatabase();
     void loadMetaStatus();
-    void loadAiStatus();
     const timer = window.setInterval(() => void loadDatabase(true), 15000);
     return () => window.clearInterval(timer);
   }, []);
@@ -301,28 +243,12 @@ export default function WhatsApp() {
   }, [threads, selected]);
 
   const active = threads.find((thread) => thread.key === selected) ?? null;
-  useEffect(() => {
-    if (active?.phone) void loadContactAi(active.phone);
-    else setAiContactEnabled(true);
-  }, [active?.phone]);
-
-  const aiOperational = Boolean(geminiConfigured && whatsappConfigured && metaConnected);
-  const aiStatusLabel = aiEnabled && aiOperational ? 'Ativado' : aiEnabled ? 'Aguardando configuração' : 'Pausado';
   const failures = events.filter((event) => event.processing_status === 'failed').length;
   const latestEvent = events[0] ?? null;
 
   async function sendManual() {
     if (!active || !active.leadId || !draft.trim()) return;
     setSending(true);
-    const { error: pauseError, data: pauseData } = await supabase.functions.invoke('gm-ai-agent', {
-      body: { action: 'set_contact_mode', phone: active.phone, enabled: false },
-    });
-    if (pauseError || pauseData?.error) {
-      setSending(false);
-      toast.error('Não foi possível pausar a IA desta conversa', { description: pauseData?.error || pauseError?.message });
-      return;
-    }
-    setAiContactEnabled(false);
     const { data, error } = await supabase.functions.invoke('whatsapp-send', {
       body: {
         requestId: crypto.randomUUID(),
@@ -421,26 +347,14 @@ export default function WhatsApp() {
         </Card>
       </div>
 
-      <Card className={aiEnabled && aiOperational ? 'border-[#25D366]/40 bg-[#25D366]/5' : 'border-primary/20 bg-primary/5'}>
-        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-3">
-            <Bot className={'h-5 w-5 shrink-0 ' + (aiEnabled && aiOperational ? 'text-[#16834a]' : 'text-primary')} />
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold text-sm">Atendimento automático GM</p>
-                <Badge variant={aiEnabled && aiOperational ? 'default' : 'secondary'}>{aiStatusLabel}</Badge>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Gemini responde dúvidas gerais usando informações públicas da clínica. Dúvidas clínicas e mensagens com mídia são encaminhadas à equipe.
-              </p>
-              {!geminiConfigured && <p className="mt-1 text-xs text-destructive">Configure GEMINI_API_KEY nos segredos das Edge Functions do Supabase.</p>}
-              {geminiConfigured && !whatsappConfigured && <p className="mt-1 text-xs text-destructive">As credenciais da API da Meta ainda não estão completas no Supabase.</p>}
-              {geminiConfigured && whatsappConfigured && metaConnected !== true && <p className="mt-1 text-xs text-destructive">A API da Meta ainda não confirmou a conexão do número.</p>}
-            </div>
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex gap-3 p-4">
+          <Bot className="h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <p className="font-semibold text-sm">IA do WhatsApp Business</p>
+            <p className="mt-1 text-sm text-muted-foreground">O atendimento por IA é gerenciado em Ferramentas → IA no aplicativo WhatsApp Business. Este painel não ativa, pausa nem treina essa IA.</p>
+            <p className="mt-2 text-xs text-muted-foreground">A sincronização das conversas depende da conexão e das permissões da Meta. A presença do número no WhatsApp Manager não confirma essa integração.</p>
           </div>
-          <Button variant="outline" onClick={() => void setAutomaticReplies(!aiEnabled)} disabled={aiSaving || (!aiEnabled && !aiOperational)}>
-            {aiSaving ? 'Salvando…' : aiEnabled ? 'Pausar IA' : 'Ativar IA'}
-          </Button>
         </CardContent>
       </Card>
 
@@ -534,14 +448,6 @@ export default function WhatsApp() {
                 {active ? active.name : 'Selecione uma conversa'}
                 {active && <span className="ml-2 text-sm font-normal text-muted-foreground">{phoneLabel(active.phone)}</span>}
               </span>
-              {active && <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void setContactAi(!aiContactEnabled, active.phone)}
-                disabled={aiContactSaving}
-              >
-                {aiContactSaving ? 'Salvando…' : aiContactEnabled ? 'Passar para equipe' : 'Retomar IA'}
-              </Button>}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col p-4">

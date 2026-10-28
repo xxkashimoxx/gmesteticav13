@@ -22,7 +22,7 @@ Quando a mensagem contém um ID de mídia, o webhook baixa o arquivo pela API da
 
 ### Respostas automáticas
 
-A função não chama Gemini nem envia respostas automáticas. As respostas podem continuar sendo feitas pela Meta AI no WhatsApp Business do celular. A tela do CRM permite envio manual pela Cloud API quando a conexão estiver ativa.
+A função somente recebe e persiste eventos; não gera respostas automáticas. O laboratório e as sugestões de IA foram removidos; seus endpoints antigos retornam HTTP 410. A IA nativa é gerenciada no WhatsApp Business. A disponibilidade de sincronização das conversas dessa IA deve ser validada na conta Meta antes de prometer compatibilidade. A tela do CRM permite envio manual pela Cloud API quando a conexão estiver ativa.
 
 ## Configuração necessária na Meta
 
