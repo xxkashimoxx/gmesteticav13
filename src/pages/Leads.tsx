@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -42,12 +41,13 @@ import { StatCard } from '@/components/StatCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
-import { brl, daysSince, LEAD_SOURCES, startOfWeek } from '@/lib/format';
+import { brl, daysSince, LEAD_SOURCES } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { WhatsAppComposer } from '@/components/WhatsAppComposer';
+import { LeadFunnelReport } from '@/components/LeadFunnelReport';
 
 type Temp = 'hot' | 'warm' | 'cold';
-type Stage = 'novo' | 'contato' | 'qualificado' | 'agendamento' | 'convertido' | 'perdido';
+type Stage = 'novo' | 'contato' | 'qualificado' | 'agendamento' | 'compareceu' | 'convertido' | 'perdido';
 
 interface Lead {
   id: string;
@@ -64,6 +64,12 @@ interface Lead {
   last_contact_at: string | null;
   notes: string | null;
   created_at: string;
+  contacted_at: string | null;
+  evaluation_scheduled_at: string | null;
+  attended_at: string | null;
+  converted_at: string | null;
+  lost_at: string | null;
+  loss_reason: string | null;
 }
 
 interface Interaction {
@@ -81,12 +87,13 @@ interface ProcedureOption {
   default_price: number | null;
 }
 
-const STAGES: Stage[] = ['novo', 'contato', 'qualificado', 'agendamento', 'convertido', 'perdido'];
+const STAGES: Stage[] = ['novo', 'contato', 'qualificado', 'agendamento', 'compareceu', 'convertido', 'perdido'];
 const stageLabel: Record<Stage, string> = {
   novo: 'Novo',
   contato: 'Em contato',
   qualificado: 'Qualificado',
   agendamento: 'Agendou avaliação',
+  compareceu: 'Compareceu',
   convertido: 'Fechou procedimento',
   perdido: 'Perdido',
 };
@@ -95,6 +102,7 @@ const stageColor: Record<Stage, string> = {
   contato: 'border-l-accent',
   qualificado: 'border-l-warning',
   agendamento: 'border-l-secondary',
+  compareceu: 'border-l-secondary',
   convertido: 'border-l-success',
   perdido: 'border-l-destructive',
 };
@@ -117,6 +125,7 @@ const emptyForm = {
   score: 50,
   estimated_value: 0,
   notes: '',
+  loss_reason: '',
 };
 
 function toLocalInputValue(d: Date) {
@@ -131,7 +140,6 @@ export default function Leads() {
   const canEdit = role === 'admin' || role === 'staff';
 
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [appointmentsCount, setAppointmentsCount] = useState({ total: 0, week: 0 });
   const [procedures, setProcedures] = useState<ProcedureOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -170,20 +178,26 @@ export default function Leads() {
 
   async function load() {
     setLoading(true);
-    const [{ data: ldata, error }, { count: total }, { count: week }, { data: procs }] = await Promise.all([
-      supabase.from('leads').select('*').order('created_at', { ascending: false }),
-      supabase.from('appointments').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .gte('scheduled_at', startOfWeek().toISOString()),
-      supabase.from('procedures').select('id, name, default_price').order('name'),
-    ]);
-    if (error) toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' });
-    setLeads((ldata ?? []) as Lead[]);
-    setProcedures((procs ?? []) as ProcedureOption[]);
-    setAppointmentsCount({ total: total ?? 0, week: week ?? 0 });
-    setLoading(false);
+    try {
+      const all: Lead[] = [];
+      let offset = 0;
+      let fetchMore = true;
+      while (fetchMore) {
+        const { data, error } = await supabase.from('leads').select('*')
+          .order('created_at', { ascending: false }).order('id').range(offset, offset + 999);
+        if (error) throw error;
+        all.push(...((data ?? []) as Lead[]));
+        fetchMore = (data?.length ?? 0) === 1000;
+        offset += 1000;
+      }
+      const { data: procs } = await supabase.from('procedures').select('id, name, default_price').order('name');
+      setLeads(all);
+      setProcedures((procs ?? []) as ProcedureOption[]);
+    } catch (error) {
+      toast({ title: 'Erro ao carregar leads', description: error instanceof Error ? error.message : 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function openDetail(l: Lead) {
@@ -221,7 +235,7 @@ export default function Leads() {
       return;
     }
     toast({ title: `Movido para "${stageLabel[stage]}"` });
-    setLeads((prev) => prev.map((x) => (x.id === l.id ? { ...x, stage } : x)));
+    await load();
   }
 
   function openCreate() {
@@ -244,6 +258,7 @@ export default function Leads() {
       score: l.score,
       estimated_value: Number(l.estimated_value),
       notes: l.notes ?? '',
+      loss_reason: l.loss_reason ?? '',
     });
     setDialogOpen(true);
   }
@@ -270,6 +285,7 @@ export default function Leads() {
     setScheduling(true);
     const proc = procedures.find((p) => p.id === scheduleForm.procedure_id);
     const { error } = await supabase.from('appointments').insert({
+      lead_id: scheduleLead.id,
       patient_name: scheduleLead.name,
       patient_phone: scheduleLead.phone,
       procedure_id: scheduleForm.procedure_id || null,
@@ -285,7 +301,7 @@ export default function Leads() {
       return;
     }
     // avança lead para agendamento + registra interação
-    await supabase.from('leads').update({ stage: 'agendamento', last_contact_at: new Date().toISOString() }).eq('id', scheduleLead.id);
+    const { error: leadError } = await supabase.from('leads').update({ stage: 'agendamento', last_contact_at: new Date().toISOString() }).eq('id', scheduleLead.id);
     await supabase.from('lead_interactions').insert({
       lead_id: scheduleLead.id,
       channel: 'sistema',
@@ -294,7 +310,7 @@ export default function Leads() {
     });
     setScheduling(false);
     setScheduleLead(null);
-    toast({ title: 'Avaliação agendada e lead movido para "Agendou avaliação"' });
+    toast({ title: leadError ? 'Avaliação agendada, mas a etapa do lead não foi atualizada' : 'Avaliação agendada e lead movido para "Agendou avaliação"', description: leadError?.message, variant: leadError ? 'destructive' : 'default' });
     load();
   }
 
@@ -316,6 +332,7 @@ export default function Leads() {
       score: Number(form.score) || 0,
       estimated_value: Number(form.estimated_value) || 0,
       notes: form.notes.trim() || null,
+      loss_reason: form.stage === 'perdido' ? form.loss_reason.trim() || null : null,
     };
     const { error } = editing
       ? await supabase.from('leads').update(payload).eq('id', editing.id)
@@ -352,32 +369,11 @@ export default function Leads() {
   const pipeline = filtered.reduce((s, l) => s + Number(l.estimated_value), 0);
   const hotIdle = hot.filter((l) => daysSince(l.last_contact_at) >= 2);
 
-  const weekStart = startOfWeek();
-  const weekConversions = leads.filter(
-    (l) => l.stage === 'convertido' && new Date(l.created_at) >= weekStart,
-  );
-  const agendados = leads.filter((l) => l.stage === 'agendamento' || l.stage === 'convertido').length;
-  const taxaAgendamento = leads.length ? Math.round((agendados / leads.length) * 100) : 0;
-
-  const bySource = useMemo(() => {
-    const m = new Map<string, { total: number; conv: number; pipeline: number }>();
-    for (const l of leads) {
-      const cur = m.get(l.source) ?? { total: 0, conv: 0, pipeline: 0 };
-      cur.total++;
-      cur.pipeline += Number(l.estimated_value);
-      if (l.stage === 'convertido') cur.conv++;
-      m.set(l.source, cur);
-    }
-    return Array.from(m.entries())
-      .map(([source, v]) => ({ source, ...v, rate: v.total ? (v.conv / v.total) * 100 : 0 }))
-      .sort((a, b) => b.total - a.total);
-  }, [leads]);
-
   const byStage = useMemo(() => {
     const m: Record<Stage, Lead[]> = {
-      novo: [], contato: [], qualificado: [], agendamento: [], convertido: [], perdido: [],
+      novo: [], contato: [], qualificado: [], agendamento: [], compareceu: [], convertido: [], perdido: [],
     };
-    for (const l of filtered) m[l.stage].push(l);
+    for (const l of filtered) if (m[l.stage]) m[l.stage].push(l);
     return m;
   }, [filtered]);
 
@@ -422,7 +418,7 @@ export default function Leads() {
               <MessageCircle className="w-3 h-3" />
             </Button>
           )}
-          {canEdit && l.stage !== 'convertido' && l.stage !== 'perdido' && (
+          {canEdit && !['agendamento', 'compareceu', 'convertido', 'perdido'].includes(l.stage) && (
             <Button
               size="sm"
               className="h-7 px-2 flex-1 bg-gradient-primary text-primary-foreground text-[11px]"
@@ -478,10 +474,12 @@ export default function Leads() {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard title="Total de Leads" value={filtered.length.toString()} icon={Users} className="border-l-4 border-l-primary" />
-        <StatCard title="Conversões na semana" value={weekConversions.length.toString()} icon={TrendingUp} className="border-l-4 border-l-success" />
-        <StatCard title="Taxa de Agendamento" value={`${taxaAgendamento}%`} icon={Target} className="border-l-4 border-l-warning" />
+        <StatCard title="Aguardando avaliação" value={filtered.filter((l) => l.stage === 'agendamento').length.toString()} icon={Target} className="border-l-4 border-l-warning" />
+        <StatCard title="Fecharam" value={filtered.filter((l) => l.stage === 'convertido').length.toString()} icon={TrendingUp} className="border-l-4 border-l-success" />
         <StatCard title="Pipeline Estimado" value={brl(pipeline)} icon={TrendingUp} className="border-l-4 border-l-accent" />
       </div>
+
+      <LeadFunnelReport leads={leads} loading={loading} />
 
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -500,7 +498,7 @@ export default function Leads() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="Todas">Todas as origens</SelectItem>
-            {LEAD_SOURCES.map((s) => (
+            {[...new Set([...LEAD_SOURCES, ...leads.map((l) => l.source)])].map((s) => (
               <SelectItem key={s} value={s}>
                 {s}
               </SelectItem>
@@ -580,33 +578,6 @@ export default function Leads() {
         </TabsContent>
 
         <TabsContent value="temperature" className="mt-4 space-y-4">
-          {/* Conversão por origem */}
-          <Card className="shadow-card border-0 bg-gradient-card">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Target className="w-5 h-5 text-primary" /> Conversão por origem
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {bySource.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Sem dados de leads ainda.</p>
-              ) : (
-                bySource.map((row) => (
-                  <div key={row.source} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{row.source}</span>
-                      <span className="text-muted-foreground">
-                        {row.conv}/{row.total} · <span className="font-semibold text-foreground">{row.rate.toFixed(0)}%</span>
-                      </span>
-                    </div>
-                    <Progress value={row.rate} className="h-2" />
-                    <p className="text-xs text-muted-foreground">Pipeline: {brl(row.pipeline)}</p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-12">Carregando...</p>
           ) : (
@@ -666,7 +637,7 @@ export default function Leads() {
                 <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {LEAD_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {[...new Set([...LEAD_SOURCES, ...leads.map((l) => l.source)])].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -713,6 +684,10 @@ export default function Leads() {
               <Label>Notas</Label>
               <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
+            {form.stage === 'perdido' && <div>
+              <Label>Motivo da perda</Label>
+              <Input value={form.loss_reason} onChange={(e) => setForm({ ...form, loss_reason: e.target.value })} placeholder="Ex.: não respondeu, preço, desistiu" />
+            </div>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancelar</Button>

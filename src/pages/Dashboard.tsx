@@ -6,6 +6,7 @@ import { CalendarDays, Users, DollarSign, TrendingUp, Clock, Target, Flame, Glob
 import { supabase } from '@/integrations/supabase/client';
 import { brl, startOfWeek } from '@/lib/format';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 interface Lead {
   id: string;
@@ -15,6 +16,8 @@ interface Lead {
   estimated_value: number;
   source: string;
   created_at: string;
+  evaluation_scheduled_at: string | null;
+  converted_at: string | null;
 }
 interface Appointment {
   id: string;
@@ -39,7 +42,7 @@ export default function Dashboard() {
         (supabase as any).from('landing_page_events').select('id', { count: 'exact', head: true })
           .eq('event_type', eventType).gte('created_at', since);
       const [leadsResult, appointmentsResult, views, requests, clicks, whatsapp] = await Promise.all([
-        supabase.from('leads').select('id,name,stage,temperature,estimated_value,source,created_at'),
+        supabase.from('leads').select('id,name,stage,temperature,estimated_value,source,created_at,evaluation_scheduled_at,converted_at'),
         supabase.from('appointments').select('*').order('scheduled_at', { ascending: true }),
         metricQuery('page_view'),
         metricQuery('booking_request'),
@@ -67,10 +70,10 @@ export default function Dashboard() {
   ).length;
 
   const weekConversions = leads.filter(
-    (l) => l.stage === 'convertido' && new Date(l.created_at) >= weekStart,
+    (l) => l.converted_at && new Date(l.converted_at) >= weekStart,
   ).length;
 
-  const agendados = leads.filter((l) => l.stage === 'agendamento' || l.stage === 'convertido').length;
+  const agendados = leads.filter((l) => l.evaluation_scheduled_at).length;
   const taxaAgendamento = leads.length ? Math.round((agendados / leads.length) * 100) : 0;
 
   // Receita prevista: hot+warm leads pipeline + agendamentos futuros não cancelados
@@ -134,7 +137,7 @@ export default function Dashboard() {
           icon={TrendingUp}
         />
         <StatCard
-          title="Taxa de Agendamento"
+          title="Agendamentos registrados / leads"
           value={`${taxaAgendamento}%`}
           icon={Target}
         />
@@ -149,6 +152,7 @@ export default function Dashboard() {
           icon={CalendarDays}
         />
       </div>
+      <p className="text-xs text-muted-foreground">Marcos do funil só contam a partir do registro da etapa. <Link className="underline" to="/leads">Ver por origem e período</Link></p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <StatCard title="Total de Leads" value={leads.length.toString()} icon={Users} />
