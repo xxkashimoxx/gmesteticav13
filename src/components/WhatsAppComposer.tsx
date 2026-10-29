@@ -40,7 +40,7 @@ interface Props {
   appointmentId?: string;
   defaultIntent?: string;
   title?: string;
-  /** Called when the user opens WhatsApp; receives the selected template kind (if any). */
+  /** Called only after the user confirms that the message was sent in WhatsApp. */
   onSend?: (templateKind?: string) => void;
 }
 
@@ -68,6 +68,7 @@ export function WhatsAppComposer({
   const [lastReceived, setLastReceived] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [openedWhatsApp, setOpenedWhatsApp] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -77,6 +78,7 @@ export function WhatsAppComposer({
       setSuggestions([]);
       setIntent(defaultIntent);
       setLastReceived('');
+      setOpenedWhatsApp(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultMessage, defaultIntent, initialTemplateKind]);
@@ -137,6 +139,7 @@ export function WhatsAppComposer({
           <DialogDescription>
             {normalized ? `+${normalized}` : 'Sem telefone cadastrado'} · Revise a mensagem antes de enviar
           </DialogDescription>
+          {onSend && <p className="text-xs text-muted-foreground">Abrir o WhatsApp não envia a mensagem. Depois de enviar lá, volte e marque como enviada aqui.</p>}
         </DialogHeader>
 
         {templates && templates.length > 0 && (
@@ -209,7 +212,7 @@ export function WhatsAppComposer({
                   {message || <span className="text-muted-foreground italic">Sua mensagem aparecerá aqui</span>}
                 </p>
                 <p className="text-[10px] text-right text-muted-foreground mt-1">
-                  {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ✓✓
+                  Prévia
                 </p>
               </div>
             </div>
@@ -235,6 +238,11 @@ export function WhatsAppComposer({
         </div>
 
         <DialogFooter className="gap-2 flex-wrap">
+          {openedWhatsApp && onSend && (
+            <Button variant="outline" onClick={() => { onSend(selectedTpl); onOpenChange(false); }}>
+              Marcar como enviado
+            </Button>
+          )}
           <Button variant="outline" onClick={copy}>
             <Copy className="w-4 h-4 mr-2" /> Copiar
           </Button>
@@ -248,8 +256,7 @@ export function WhatsAppComposer({
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => {
-                  onSend?.(selectedTpl);
-                  onOpenChange(false);
+                  setOpenedWhatsApp(true);
                 }}
               >
                 <MessageCircle className="w-4 h-4 mr-2" /> Abrir WhatsApp

@@ -45,6 +45,7 @@ import { brl, daysSince, LEAD_SOURCES } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { WhatsAppComposer } from '@/components/WhatsAppComposer';
 import { LeadFunnelReport } from '@/components/LeadFunnelReport';
+import { leadWhatsAppTemplates } from '@/lib/leadWhatsApp';
 
 type Temp = 'hot' | 'warm' | 'cold';
 type Stage = 'novo' | 'contato' | 'qualificado' | 'agendamento' | 'compareceu' | 'convertido' | 'perdido';
@@ -906,6 +907,8 @@ export default function Leads() {
           phone={waLead.phone}
           patientName={waLead.name}
           leadId={waLead.id}
+          templates={leadWhatsAppTemplates(waLead.name)}
+          initialTemplateKind={waLead.stage === 'novo' ? 'welcome' : waLead.stage === 'contato' ? 'evaluation' : 'followup'}
           defaultIntent={
             waLead.stage === 'novo'
               ? 'Fazer primeiro contato e apresentar a clínica'

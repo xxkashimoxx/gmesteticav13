@@ -42,6 +42,7 @@ import {
 } from '@/lib/whatsapp';
 import { WhatsAppComposer, type WhatsAppTemplate } from '@/components/WhatsAppComposer';
 import { brl } from '@/lib/format';
+import { AppointmentWaitlist } from '@/components/AppointmentWaitlist';
 
 type Appointment = {
   id: string;
@@ -216,6 +217,7 @@ export default function Schedule() {
       </div>
 
       {/* Lembretes pendentes */}
+      <AppointmentWaitlist />
       {pendingReminders.length > 0 && (
         <Card className="shadow-card border-0 bg-gradient-card">
           <CardHeader>
@@ -494,21 +496,9 @@ function AppointmentDialog({
       };
 
       if (cancelled) {
-        const sent = fireWhatsApp('cancellation', aptForMsg);
-        if (sent) {
-          await supabase
-            .from('appointments')
-            .update({ reschedule_notice_sent_at: new Date().toISOString() })
-            .eq('id', appointment.id);
-        }
+        fireWhatsApp('cancellation', aptForMsg);
       } else if (scheduleChanged) {
-        const sent = fireWhatsApp('reschedule', aptForMsg);
-        if (sent) {
-          await supabase
-            .from('appointments')
-            .update({ reschedule_notice_sent_at: new Date().toISOString() })
-            .eq('id', appointment.id);
-        }
+        fireWhatsApp('reschedule', aptForMsg);
       }
       toast({ title: 'Agendamento atualizado' });
     } else {
@@ -535,22 +525,16 @@ function AppointmentDialog({
         });
         return;
       }
-      const sent = fireWhatsApp('confirmation', {
+      const opened = fireWhatsApp('confirmation', {
         patient_name: patientName,
         patient_phone: patientPhone,
         procedure_name: proc?.name || null,
         scheduled_at: newScheduledAt,
       });
-      if (sent) {
-        await supabase
-          .from('appointments')
-          .update({ confirmation_sent_at: new Date().toISOString() })
-          .eq('id', data.id);
-      }
       toast({
         title: 'Agendamento criado',
-        description: sent
-          ? 'Mensagem de confirmação aberta no WhatsApp.'
+        description: opened
+          ? 'Mensagem preparada no WhatsApp. Confira o envio por lá.'
           : 'Cadastre o telefone para enviar a confirmação por WhatsApp.',
       });
     }
