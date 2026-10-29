@@ -321,12 +321,18 @@ export type Database = {
       }
       leads: {
         Row: {
+          attended_at: string | null
           campaign: string | null
+          contacted_at: string | null
+          converted_at: string | null
           created_at: string
           email: string | null
           estimated_value: number
+          evaluation_scheduled_at: string | null
           id: string
           last_contact_at: string | null
+          loss_reason: string | null
+          lost_at: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -340,12 +346,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attended_at?: string | null
           campaign?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
           created_at?: string
           email?: string | null
           estimated_value?: number
+          evaluation_scheduled_at?: string | null
           id?: string
           last_contact_at?: string | null
+          loss_reason?: string | null
+          lost_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -359,12 +371,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attended_at?: string | null
           campaign?: string | null
+          contacted_at?: string | null
+          converted_at?: string | null
           created_at?: string
           email?: string | null
           estimated_value?: number
+          evaluation_scheduled_at?: string | null
           id?: string
           last_contact_at?: string | null
+          loss_reason?: string | null
+          lost_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
