@@ -37,6 +37,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { brl } from '@/lib/format';
 import { normalizePhone } from '@/lib/whatsapp';
+import { TreatmentPlanSection } from '@/components/TreatmentPlanSection';
 
 type Lead = {
   id: string;
@@ -324,9 +325,10 @@ export default function PatientDetail() {
       </Card>
 
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 w-full h-auto">
           <TabsTrigger value="summary"><User className="w-4 h-4 mr-1" /> Resumo</TabsTrigger>
           <TabsTrigger value="anamnesis"><ClipboardList className="w-4 h-4 mr-1" /> Anamnese</TabsTrigger>
+          <TabsTrigger value="plan"><FileText className="w-4 h-4 mr-1" /> Plano</TabsTrigger>
           <TabsTrigger value="history"><FileText className="w-4 h-4 mr-1" /> Histórico</TabsTrigger>
           <TabsTrigger value="photos"><Camera className="w-4 h-4 mr-1" /> Fotos</TabsTrigger>
           <TabsTrigger value="finance"><DollarSign className="w-4 h-4 mr-1" /> Financeiro</TabsTrigger>
@@ -473,6 +475,10 @@ export default function PatientDetail() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="plan">
+          <TreatmentPlanSection leadId={lead.id} patientName={lead.name} />
         </TabsContent>
 
         {/* History */}

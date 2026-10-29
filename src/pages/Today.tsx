@@ -14,11 +14,9 @@ import {
   Play,
   DollarSign,
   XCircle,
-  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   BellRing,
-  Cake,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +27,7 @@ import { buildMessage, buildWhatsAppUrl, TEMPLATE_LABELS, type WhatsAppTemplateK
 import { WhatsAppComposer, type WhatsAppTemplate } from '@/components/WhatsAppComposer';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/integrations/supabase/types';
+import { TreatmentFollowups } from '@/components/TreatmentFollowups';
 
 type AppointmentStatus =
   | 'scheduled'
@@ -373,21 +372,7 @@ export default function Today() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-card border-0 bg-gradient-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="w-5 h-5 text-warning" />
-              Atenção
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p className="flex items-center gap-2">
-              <Cake className="w-4 h-4" />
-              Aniversariantes do dia aparecerão aqui quando pacientes tiverem data de nascimento cadastrada.
-            </p>
-            <p>Faltas da semana e retornos sugeridos serão exibidos na próxima iteração.</p>
-          </CardContent>
-        </Card>
+        <TreatmentFollowups />
       </div>
 
       {waState && (
