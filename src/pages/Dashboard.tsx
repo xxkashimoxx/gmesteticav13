@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Users, DollarSign, TrendingUp, Clock, Target, Flame, Globe, MousePointerClick, CalendarCheck, MessageCircle, ExternalLink } from 'lucide-react';
+import { CalendarDays, Users, DollarSign, TrendingUp, Clock, Target, Flame, Globe, MousePointerClick, CalendarCheck, MessageCircle, ExternalLink, Instagram, Eye, Play, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { brl, startOfWeek } from '@/lib/format';
 import { Button } from '@/components/ui/button';
@@ -111,6 +111,33 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <Card className="shadow-card border border-accent/25 bg-gradient-card">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <Instagram className="w-5 h-5 text-accent" /> Instagram · @dragoretimagalhaes
+            </CardTitle>
+            <span className="text-xs text-muted-foreground">Insights do Edits · 7 out. a 6 nov. 2026 · relatório exportado</span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard title="Seguidores" value="5.791" icon={Users} />
+            <StatCard title="Visualizadores" value="15 mil" icon={Eye} />
+            <StatCard title="Visualizações de reels" value="2,7 mil" icon={Play} />
+            <StatCard title="Curtidas" value="190" icon={Heart} />
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground">
+            <span><strong>85,1%</strong> mulheres</span>
+            <span><strong>66%</strong> do Rio de Janeiro</span>
+            <span><strong>31,9%</strong> de 35 a 44 anos · <strong>31,6%</strong> de 45 a 54 anos</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Também no relatório: 27 compartilhamentos, 19 comentários, 3 salvamentos e 2 reposts. Valores em mil são arredondados na origem; este é um retrato do período, sem atualização automática. Não representam acessos à landing nem agendamentos.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card className="shadow-card border border-accent/25 bg-gradient-card">
         <CardHeader className="pb-3">
