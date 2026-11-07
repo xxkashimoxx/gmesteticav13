@@ -15,11 +15,11 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon: Icon, trend, className }: StatCardProps) {
   return (
-    <Card className={cn('p-4 md:p-6 min-h-[116px] bg-gradient-card shadow-card border-0', className)}>
-      <div className="flex items-start justify-between gap-3">
+    <Card className={cn('min-w-0 min-h-[112px] p-3 sm:p-4 md:p-6 bg-gradient-card shadow-card border-0', className)}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-tight text-muted-foreground">{title}</p>
-          <p className="mt-2 break-words text-xl font-bold leading-tight text-foreground md:text-2xl">{value}</p>
+          <p className="break-words text-xs sm:text-sm font-medium leading-snug text-muted-foreground">{title}</p>
+          <p className="mt-1.5 break-words text-lg sm:text-xl font-bold leading-tight text-foreground md:text-2xl">{value}</p>
           {trend && (
             <div className="mt-2 flex items-center">
               <span
@@ -34,8 +34,8 @@ export function StatCard({ title, value, icon: Icon, trend, className }: StatCar
             </div>
           )}
         </div>
-        <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="order-first flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 sm:order-last sm:h-11 sm:w-11">
+          <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
         </div>
       </div>
     </Card>

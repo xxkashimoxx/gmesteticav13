@@ -112,17 +112,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Card className="shadow-card border border-accent/25 bg-gradient-card">
-        <CardHeader className="pb-3">
+      <Card className="min-w-0 shadow-card border border-accent/25 bg-gradient-card">
+        <CardHeader className="px-4 pb-3 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Instagram className="w-5 h-5 text-accent" /> Instagram · @dragoretimagalhaes
+            <CardTitle className="flex min-w-0 items-start gap-2 break-words text-lg leading-snug sm:text-2xl">
+              <Instagram className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> <span className="min-w-0 break-words">Instagram · @dragoretimagalhaes</span>
             </CardTitle>
             <span className="text-xs text-muted-foreground">Insights do Edits · 7 out. a 6 nov. 2026 · relatório exportado</span>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <CardContent className="space-y-4 px-4 sm:px-6">
+          <div className="grid grid-cols-1 min-[340px]:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard title="Seguidores" value="5.791" icon={Users} />
             <StatCard title="Visualizadores" value="15 mil" icon={Eye} />
             <StatCard title="Visualizações de reels" value="2,7 mil" icon={Play} />
@@ -139,22 +139,22 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-card border border-accent/25 bg-gradient-card">
-        <CardHeader className="pb-3">
+      <Card className="min-w-0 shadow-card border border-accent/25 bg-gradient-card">
+        <CardHeader className="px-4 pb-3 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-accent" /> Métricas da landing page
+            <CardTitle className="flex min-w-0 items-start gap-2 text-lg leading-snug sm:text-2xl">
+              <Globe className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> <span>Métricas da landing page</span>
             </CardTitle>
             <span className="text-xs text-muted-foreground">Últimos 30 dias · após autorização de medição</span>
           </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <CardContent className="grid grid-cols-1 min-[340px]:grid-cols-2 lg:grid-cols-4 gap-3 px-4 sm:px-6">
           <StatCard title="Acessos" value={landingMetrics?.pageViews.toLocaleString('pt-BR') ?? '—'} icon={Globe} />
           <StatCard title="Solicitações de agendamento" value={landingMetrics?.bookingRequests.toLocaleString('pt-BR') ?? '—'} icon={CalendarCheck} />
           <StatCard title="Cliques em CTAs e links" value={landingMetrics?.ctaClicks.toLocaleString('pt-BR') ?? '—'} icon={MousePointerClick} />
           <StatCard title="Cliques no WhatsApp" value={landingMetrics?.whatsappClicks.toLocaleString('pt-BR') ?? '—'} icon={MessageCircle} />
         </CardContent>
-        <p className="px-6 pb-4 text-xs text-muted-foreground">Solicitações abrem uma conversa no WhatsApp; não representam agendamentos confirmados.</p>
+        <p className="px-4 pb-4 text-xs text-muted-foreground sm:px-6">Solicitações abrem uma conversa no WhatsApp; não representam agendamentos confirmados.</p>
       </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">

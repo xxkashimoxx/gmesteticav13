@@ -25,7 +25,7 @@ export function FloatingWhatsAppButton() {
   const directUrl = clinicWaMeUrl();
 
   return (
-    <div className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-40 flex flex-col items-end gap-2">
+    <div className="hidden lg:fixed lg:bottom-6 lg:right-6 lg:z-40 lg:flex lg:flex-col lg:items-end lg:gap-2">
       {open && (
         <div className="w-64 rounded-xl border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
