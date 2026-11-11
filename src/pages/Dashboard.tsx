@@ -118,23 +118,18 @@ export default function Dashboard() {
             <CardTitle className="flex min-w-0 items-start gap-2 break-words text-lg leading-snug sm:text-2xl">
               <Instagram className="mt-0.5 h-5 w-5 shrink-0 text-accent" /> <span className="min-w-0 break-words">Instagram · @dragoretimagalhaes</span>
             </CardTitle>
-            <span className="text-xs text-muted-foreground">Insights do Edits · 7 out. a 6 nov. 2026 · relatório exportado</span>
+            <span className="text-xs text-muted-foreground">Insights do Edits · 11 out. a 10 nov. 2026 · relatório exportado</span>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="grid grid-cols-1 min-[340px]:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard title="Seguidores" value="5.791" icon={Users} />
+            <StatCard title="Seguidores" value="5,7 mil" icon={Users} />
             <StatCard title="Visualizadores" value="15 mil" icon={Eye} />
-            <StatCard title="Visualizações de reels" value="2,7 mil" icon={Play} />
-            <StatCard title="Curtidas" value="190" icon={Heart} />
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-foreground">
-            <span><strong>85,1%</strong> mulheres</span>
-            <span><strong>66%</strong> do Rio de Janeiro</span>
-            <span><strong>31,9%</strong> de 35 a 44 anos · <strong>31,6%</strong> de 45 a 54 anos</span>
+            <StatCard title="Visualizações de reels" value="1,9 mil" icon={Play} />
+            <StatCard title="Curtidas" value="161" icon={Heart} />
           </div>
           <p className="text-xs text-muted-foreground">
-            Também no relatório: 27 compartilhamentos, 19 comentários, 3 salvamentos e 2 reposts. Valores em mil são arredondados na origem; este é um retrato do período, sem atualização automática. Não representam acessos à landing nem agendamentos.
+            Também no relatório: 31 compartilhamentos, 14 comentários, 4 salvamentos, 3 reposts e 2 reels. Valores em mil são arredondados na origem; este é um retrato do período, sem atualização automática. Não representam acessos à landing nem agendamentos.
           </p>
         </CardContent>
       </Card>
